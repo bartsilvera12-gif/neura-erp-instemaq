@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ferrecolor ERP",
-  description: "Sistema de gestión empresarial de Ferrecolor",
+  title: "Instemaq ERP",
+  description: "Sistema de gestión empresarial de Instemaq",
 };
 
 export default function RootLayout({

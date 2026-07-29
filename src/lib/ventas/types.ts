@@ -35,7 +35,7 @@ export interface Venta {
   tipo_venta: TipoVenta;
   plazo_dias?: number;       // solo si tipo_venta === "CREDITO"
 
-  metodo_pago?: MetodoPago;  // En lo de Mari: efectivo/tarjeta/transferencia
+  metodo_pago?: MetodoPago;  // Instemaq: efectivo/tarjeta/transferencia
 
   fecha: string;             // ISO string, generado automáticamente
 }

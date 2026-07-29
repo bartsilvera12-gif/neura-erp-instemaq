@@ -128,7 +128,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     { label: "Productos", href: "/inventario" },
     { label: "Movimientos", href: "/inventario/movimientos" },
     { label: "Categorías", href: "/inventario/categorias" },
-    // "Depósitos / Ubicaciones" oculto en instancia En lo de Mari (no aplica para gastronomía).
+    // "Depósitos / Ubicaciones" oculto en instancia Instemaq (no aplica para gastronomía).
   ]},
   { key: "clientes", slug: "clientes", label: "Clientes", href: "/clientes", icon: Users },
   {
@@ -143,7 +143,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     ],
   },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
-  // Pagos oculto en instancia En lo de Mari (no usa este módulo).
+  // Pagos oculto en instancia Instemaq (no usa este módulo).
   { key: "comisiones", slug: "comisiones", label: "Comisiones", href: "/comisiones", icon: Percent },
   {
     key: "notas_credito",

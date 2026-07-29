@@ -5,7 +5,7 @@ export type ResultadoGuardarVenta =
   | { success: true; venta: Venta }
   | { success: false; error: string };
 
-/** Modalidad del pedido (instancia gastronómica En lo de Mari). */
+/** Modalidad del pedido (instancia gastronómica Instemaq). */
 export type PedidoCocinaInput = {
   modalidad: "local" | "delivery" | "carry_out";
   mesa?: string | null;

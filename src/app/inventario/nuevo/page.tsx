@@ -803,7 +803,7 @@ export default function NuevoProductoPage() {
                 </div>
               </div>
 
-              {/* Ubicación principal — oculta en instancia En lo de Mari (no aplica para gastronomía).
+              {/* Ubicación principal — oculta en instancia Instemaq (no aplica para gastronomía).
                   Lógica/state preservados; submit envía ubicacionId que queda en null por defecto. */}
               <div className="hidden md:col-span-4 min-w-0">
                 <label className={labelClass}>Ubicación principal</label>
@@ -966,7 +966,7 @@ export default function NuevoProductoPage() {
             )}
           </div>
 
-          {/* Método de valuación — oculto en instancia En lo de Mari.
+          {/* Método de valuación — oculto en instancia Instemaq.
               Se mantiene siempre 'CPP' (default del state form.metodo_valuacion) y se envía al backend tal cual. */}
           <div className="hidden">
             <label className={labelClass}>Método de valuación</label>

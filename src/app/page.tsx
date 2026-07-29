@@ -2101,7 +2101,7 @@ export default function DashboardPage() {
   const mapNombreTipoServicio = useMapNombreTipoServicioCatalogo(clientes);
   const nivel = usuarioActivo?.nivel ?? "administrador";
 
-  // Instancia En lo de Mari: solo Ventas / Inventario / Financiero (sin Comercial/CRM/Pipeline).
+  // Instancia Instemaq: solo Ventas / Inventario / Financiero (sin Comercial/CRM/Pipeline).
   const MARI_ALLOWED_TABS: TabDash[] = ["ventas", "inventario", "financiero"];
   const rawTabs: TabDash[] = dashScope.kind === "scoped" ? dashScope.tabs : TAB_VALID;
   const effectiveTabs: TabDash[] = rawTabs.filter((t) => MARI_ALLOWED_TABS.includes(t));
@@ -2212,7 +2212,7 @@ export default function DashboardPage() {
               Dashboard
             </h1>
             <p className="mt-1 max-w-md text-sm leading-relaxed" style={{ color: Z.muted }}>
-              Ferrecolor ERP · Vista {nivel === "supervisor" ? "de tu área" : "global"} · período alineado al filtro
+              Instemaq ERP · Vista {nivel === "supervisor" ? "de tu área" : "global"} · período alineado al filtro
             </p>
           </div>
         </div>

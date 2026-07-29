@@ -86,12 +86,12 @@ export default function NuevaVentaPage() {
   const [errorLinea, setErrorLinea] = useState<string | null>(null);
   const [errorVenta, setErrorVenta] = useState<string | null>(null);
 
-  // ── Condiciones de la venta (fijas para En lo de Mari) ────────────────────
+  // ── Condiciones de la venta (fijas para Instemaq) ────────────────────
   // Instancia dedicada: siempre Guaraníes + Contado.
   const moneda: MonedaVenta = "GS";
   const tipoVenta: TipoVenta = "CONTADO";
 
-  // Pedidos (gastronomía): modalidad obligatoria en instancia En lo de Mari
+  // Pedidos (gastronomía): modalidad obligatoria en instancia Instemaq
   type Modalidad = "local" | "delivery" | "carry_out";
   const [modalidad, setModalidad] = useState<Modalidad | "">("");
   const [pedidoMesa, setPedidoMesa] = useState("");

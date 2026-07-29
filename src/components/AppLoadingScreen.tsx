@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Pantalla de carga global — En lo de Mari.
+ * Pantalla de carga global — Instemaq.
  * Fondo teal con gradiente + logo Z animado (las dos mitades se separan y
  * vuelven a su sitio) + texto "Z E N T R A".
  *

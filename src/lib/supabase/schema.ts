@@ -1,12 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Instancia dedicada monocliente (En lo de Mari).
+ * Instancia dedicada monocliente (Instemaq).
  * Schema único Postgres para catálogo + datos operativos.
- * Override opcional vía NEURA_CLIENT_SCHEMA si se reusa el repo para otro cliente.
+ * Resolución de schema:
+ *   - Browser: `NEXT_PUBLIC_NEURA_CLIENT_SCHEMA` (inyectada en el bundle en build).
+ *   - Server:  `NEURA_CLIENT_SCHEMA` (o la pública si estuviera presente).
+ *   - Fallback: `instemaq` (schema propio de esta instancia dedicada).
  */
 export const NEURA_CLIENT_SCHEMA: string =
-  (typeof process !== "undefined" && process.env.NEURA_CLIENT_SCHEMA?.trim()) || "enlodemari";
+  (typeof process !== "undefined" &&
+    (process.env.NEXT_PUBLIC_NEURA_CLIENT_SCHEMA?.trim() ||
+      process.env.NEURA_CLIENT_SCHEMA?.trim())) ||
+  "instemaq";
 
 /**
  * Schema Postgres principal de la app.

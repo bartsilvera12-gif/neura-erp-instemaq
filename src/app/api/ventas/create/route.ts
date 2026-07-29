@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         ? null
         : String(o.observaciones).slice(0, 4000);
 
-    // Pedido de cocina (modalidad obligatoria en instancia En lo de Mari)
+    // Pedido de cocina (modalidad obligatoria en instancia Instemaq)
     const pedidoRaw = (o.pedido_cocina ?? null) as Record<string, unknown> | null;
     type PedidoCocinaParsed = {
       modalidad: "local" | "delivery" | "carry_out";

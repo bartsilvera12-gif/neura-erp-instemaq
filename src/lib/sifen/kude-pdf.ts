@@ -275,7 +275,7 @@ export async function buildKudePdfBuffer(input: BuildKudePdfInput): Promise<Buff
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.setTitle(`KuDE — Factura ${numeroFactura}`);
-  pdfDoc.setAuthor("Ferrecolor ERP");
+  pdfDoc.setAuthor("Instemaq ERP");
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -708,7 +708,7 @@ export async function buildKudePdfBuffer(input: BuildKudePdfInput): Promise<Buff
     leg += legendLead;
   }
   leg += 2;
-  page.drawText("Generado con Ferrecolor ERP", {
+  page.drawText("Generado con Instemaq ERP", {
     x: margin + footPad,
     y: baselineFromTop(page, leg),
     size: 6.5,

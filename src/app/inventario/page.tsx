@@ -291,7 +291,7 @@ export default function InventarioPage() {
           </div>
 
           {/* Fila 2: valuación, ubicación, stock bajo, limpiar y contador
-              Ocultada para instancia En lo de Mari — la lógica de filtros sigue activa pero sin UI. */}
+              Ocultada para instancia Instemaq — la lógica de filtros sigue activa pero sin UI. */}
           <div className="hidden flex-wrap items-center gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Valuación</label>
