@@ -948,7 +948,7 @@ export default function NuevaVentaPage() {
       // SOLO si la venta la genera (cliente con usa_nota_remision o toggle activo).
       const v = resultado.venta;
       const generaNota = v.genera_nota_remision === true || !!v.nota_remision_numero;
-      const ticketUrl = `/api/ventas/${v.id}/ticket?mode=comandas&auto=1`;
+      const ticketUrl = `/api/ventas/${v.id}/ticket?auto=1`;
       const remisionUrl = `/api/ventas/${v.id}/ticket?tipo=remision&auto=1`;
       // Esta instancia no usa el autoimpresor de facturas: el documento de la
       // venta es el ticket. La factura electrónica se emite aparte desde SIFEN.
@@ -1891,7 +1891,7 @@ export default function NuevaVentaPage() {
 
             <div className="grid grid-cols-1 gap-2">
               <a
-                href={`/api/ventas/${postVenta.id}/ticket?mode=comandas&auto=1`}
+                href={`/api/ventas/${postVenta.id}/ticket?auto=1`}
                 target="_blank"
                 rel="noopener"
                 className="rounded-lg bg-[#0EA5E9] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0284C7]"
