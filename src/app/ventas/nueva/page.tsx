@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Plus, Minus, Trash2, ImageIcon, Wallet } from "lucide-react";
 import MontoInput from "@/components/ui/MontoInput";
+import { FancySelect } from "@/components/ui/FancySelect";
 import ProductPickerModal, { type ProductoPickerItem, type AgregarVentaPayload } from "@/components/inventario/ProductPickerModal";
 import { saveVenta, type FaltanteStock } from "@/lib/ventas/storage";
 import { getProductos } from "@/lib/inventario/storage";
@@ -829,12 +830,9 @@ export default function NuevaVentaPage() {
 
   /** Envía la venta. Con `permitirSinStock=true` autoriza vender aunque falte stock. */
   async function enviarVenta(permitirSinStock: boolean) {
-    // Multi-caja: exigir una caja abierta activa antes de registrar la venta.
-    if (cajasAbiertas.length === 0) {
-      setErrorVenta("Debe abrir una caja para registrar la venta. Abrí una caja en la pantalla de Caja.");
-      return;
-    }
-    if (!cajaActivaFinal) {
+    // Esta instancia no usa el módulo Caja: la venta no depende de una caja abierta.
+    // Si hubiera varias cajas abiertas, se sigue exigiendo elegir cuál.
+    if (cajasAbiertas.length > 1 && !cajaActivaFinal) {
       setErrorVenta("Hay varias cajas abiertas: seleccioná la caja activa antes de confirmar.");
       return;
     }
@@ -1028,12 +1026,8 @@ export default function NuevaVentaPage() {
             Buscá un producto y se agrega al instante. Revisá cantidades y precios en la tabla.
           </p>
         </div>
-        {/* Caja activa (múltiples cajas) */}
-        {cajasAbiertas.length === 0 ? (
-          <a href="/ventas" className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
-            ⚠ No hay caja abierta — abrí una caja
-          </a>
-        ) : (
+        {/* Caja activa: solo si la instancia usa cajas (si no hay, no se muestra nada). */}
+        {cajasAbiertas.length === 0 ? null : (
           <div className="flex items-center gap-2 rounded-lg border border-[#4FAEB2]/30 bg-[#4FAEB2]/[0.06] px-3 py-2">
             <span className="text-xs font-semibold text-[#3F8E91]">Caja activa</span>
             {cajasAbiertas.length === 1 ? (
@@ -1578,15 +1572,22 @@ export default function NuevaVentaPage() {
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
                                   <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Medio</label>
-                                  <select
+                                  <FancySelect
+                                    ariaLabel="Medio de pago"
+                                    size="sm"
                                     value={p.metodo}
-                                    onChange={(e) => updatePagoMixto(p.key, { metodo: e.target.value as PagoMixto["metodo"], entidadId: e.target.value === "efectivo" ? "" : p.entidadId })}
-                                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/15"
-                                  >
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="tarjeta">Tarjeta/Débito</option>
-                                  </select>
+                                    onChange={(v) =>
+                                      updatePagoMixto(p.key, {
+                                        metodo: v as PagoMixto["metodo"],
+                                        entidadId: v === "efectivo" ? "" : p.entidadId,
+                                      })
+                                    }
+                                    options={[
+                                      { value: "efectivo", label: "Efectivo" },
+                                      { value: "transferencia", label: "Transferencia" },
+                                      { value: "tarjeta", label: "Tarjeta/Débito" },
+                                    ]}
+                                  />
                                 </div>
                                 <div>
                                   <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Monto (Gs.)</label>
