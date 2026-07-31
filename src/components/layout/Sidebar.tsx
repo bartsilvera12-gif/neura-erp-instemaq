@@ -99,8 +99,9 @@ const MENU_STRUCTURE: MenuItem[] = [
   ]},
   { key: "clientes", slug: "clientes", label: "Clientes", href: "/clientes", icon: Users },
   { key: "gestion-clientes", slug: "gestion-clientes", label: "Gestión Clientes", href: "/gestion-clientes", icon: Users },
-  // Cobros: cuentas por cobrar y registro de cobros. Módulo propio (slug cobros).
-  { key: "cobros", slug: "cobros", label: "Cobros", href: "/cobros", icon: Banknote },
+  // Cobros: cuentas por cobrar y registro de cobros. La página vive en /pagos;
+  // el slug es `cobros` (módulo habilitado para la empresa).
+  { key: "cobros", slug: "cobros", label: "Cobros", href: "/pagos", icon: Banknote },
   {
     key: "compras",
     slug: "compras",
