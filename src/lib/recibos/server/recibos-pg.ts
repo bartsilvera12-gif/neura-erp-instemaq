@@ -7,6 +7,16 @@ export interface CrearReciboInput {
   venta_id?: string | null;
   cobro_cliente_id?: string | null;
   observaciones?: string | null;
+  /** Solo para `origen: "manual"`. */
+  manual?: {
+    cliente_id?: string | null;
+    cliente_nombre?: string | null;
+    monto: number;
+    moneda?: string | null;
+    metodo_pago?: string | null;
+    referencia?: string | null;
+    concepto?: string | null;
+  };
 }
 
 export class ReciboError extends Error {
@@ -187,7 +197,108 @@ export async function crearOReusarRecibo(
     });
   }
 
+  // ── Recibo manual (no atado a una venta ni a un cobro) ──────────────────
+  if (input.origen === "manual") {
+    const m = input.manual;
+    if (!m) throw new ReciboError("Faltan los datos del recibo manual.");
+    const monto = Number(m.monto);
+    if (!Number.isFinite(monto) || monto <= 0) throw new ReciboError("El monto debe ser mayor a 0.");
+
+    const clienteId = m.cliente_id ? String(m.cliente_id) : null;
+    let nombre = (m.cliente_nombre ?? "").trim();
+    let documento: string | null = null;
+    if (clienteId) {
+      const r = await nombreYDoc(sb, empresaId, clienteId);
+      nombre = r.nombre;
+      documento = r.documento;
+    }
+    if (!nombre) nombre = "Consumidor final";
+
+    return await insertarRecibo(sb, empresaId, usuario, {
+      cliente_id: clienteId,
+      cliente_nombre: nombre,
+      cliente_documento: documento,
+      origen: "manual",
+      venta_id: null,
+      cuenta_por_cobrar_id: null,
+      cobro_cliente_id: null,
+      moneda: m.moneda === "USD" ? "USD" : "PYG",
+      monto,
+      metodo_pago: (m.metodo_pago ?? "efectivo").trim() || "efectivo",
+      entidad_bancaria_id: null,
+      referencia: m.referencia?.trim() || null,
+      concepto: m.concepto?.trim() || "Recibo de dinero",
+      observaciones: input.observaciones ?? null,
+    });
+  }
+
   throw new ReciboError("Origen de recibo inválido.");
+}
+
+/**
+ * Anula un recibo (marca `anulado`). No revierte la venta ni el cobro asociado:
+ * el recibo es un comprobante interno NO fiscal de que el dinero se recibió.
+ */
+export async function anularRecibo(
+  sb: AppSupabaseClient,
+  empresaId: string,
+  reciboId: string,
+  motivo: string | null
+): Promise<Record<string, unknown>> {
+  const q = await sb
+    .from("recibos_dinero")
+    .select("id, anulado, observaciones")
+    .eq("empresa_id", empresaId)
+    .eq("id", reciboId)
+    .maybeSingle();
+  if (q.error) throw new ReciboError(q.error.message, 500);
+  if (!q.data) throw new ReciboError("Recibo no encontrado.", 404);
+  if ((q.data as { anulado?: boolean }).anulado) throw new ReciboError("El recibo ya está anulado.", 409);
+
+  const previo = (q.data as { observaciones?: string | null }).observaciones;
+  const nota = motivo?.trim() ? `Anulado: ${motivo.trim()}` : "Anulado";
+  const observaciones = previo ? `${previo}\n${nota}` : nota;
+
+  const up = await sb
+    .from("recibos_dinero")
+    .update({ anulado: true, observaciones, updated_at: new Date().toISOString() })
+    .eq("empresa_id", empresaId)
+    .eq("id", reciboId)
+    .select(RECIBO_COLS)
+    .single();
+  if (up.error) throw new ReciboError(up.error.message, 500);
+  return up.data as unknown as Record<string, unknown>;
+}
+
+/** Listado de recibos con filtros opcionales. */
+export async function listarRecibos(
+  sb: AppSupabaseClient,
+  empresaId: string,
+  filtros: {
+    desde?: string | null;
+    hasta?: string | null;
+    origen?: OrigenRecibo | null;
+    buscar?: string | null;
+    incluirAnulados?: boolean;
+  }
+): Promise<Record<string, unknown>[]> {
+  let q = sb
+    .from("recibos_dinero")
+    .select(RECIBO_COLS)
+    .eq("empresa_id", empresaId)
+    .order("fecha", { ascending: false })
+    .limit(500);
+
+  if (filtros.desde) q = q.gte("fecha", filtros.desde);
+  if (filtros.hasta) q = q.lte("fecha", filtros.hasta);
+  if (filtros.origen) q = q.eq("origen", filtros.origen);
+  if (!filtros.incluirAnulados) q = q.eq("anulado", false);
+  const b = filtros.buscar?.trim();
+  if (b) q = q.or(`numero_recibo.ilike.%${b}%,cliente_nombre.ilike.%${b}%,concepto.ilike.%${b}%`);
+
+  const { data, error } = await q;
+  if (error) throw new ReciboError(error.message, 500);
+  return (data ?? []) as unknown as Record<string, unknown>[];
 }
 
 type InsertData = {
