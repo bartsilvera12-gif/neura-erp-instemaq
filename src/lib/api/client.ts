@@ -99,6 +99,8 @@ export async function apiCreateCliente(data: {
   sifen_direccion_de?: string | null;
   sifen_num_casa_de?: number | null;
   sifen_descripcion_tipo_doc?: string | null;
+  /** Marca si el cliente opera con nota de remisión (columna `clientes.usa_nota_remision`). */
+  usa_nota_remision?: boolean;
 }): Promise<
   | { ok: true; data: { id: string; [key: string]: unknown } }
   | { ok: false; error: string }
