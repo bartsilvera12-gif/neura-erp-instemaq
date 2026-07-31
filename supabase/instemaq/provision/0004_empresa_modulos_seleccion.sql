@@ -23,7 +23,8 @@ DECLARE
     'gestion-clientes', -- Gestión Clientes
     'notas_credito',    -- Notas de crédito
     'ventas',           -- Ventas
-    'inventario'        -- Inventario (todo lo relacionado a inventario)
+    'inventario',       -- Inventario (todo lo relacionado a inventario)
+    'compras'           -- Compras + Proveedores (entrada de stock)
   ];
 BEGIN
   DELETE FROM instemaq.empresa_modulos WHERE empresa_id = v_empresa_id;

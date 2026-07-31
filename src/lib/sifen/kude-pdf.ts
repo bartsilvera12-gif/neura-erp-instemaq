@@ -111,12 +111,21 @@ function formatMonto(nStr: string, moneda: string): string {
   return n.toLocaleString("es-PY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/**
+ * Logo por defecto del KuDE. Primero el de la instancia (Instemaq); si no está,
+ * se preserva el logo Neura del bundle.
+ */
 function readLogoBytes(): Uint8Array | null {
-  const p = path.join(process.cwd(), "public", "logo-neura.png");
-  try {
-    if (fs.existsSync(p)) return new Uint8Array(fs.readFileSync(p));
-  } catch {
-    /* ignore */
+  const candidatos = [
+    path.join(process.cwd(), "public", "brand", "instemaq-logo.jpeg"),
+    path.join(process.cwd(), "public", "logo-neura.png"),
+  ];
+  for (const p of candidatos) {
+    try {
+      if (fs.existsSync(p)) return new Uint8Array(fs.readFileSync(p));
+    } catch {
+      /* siguiente candidato */
+    }
   }
   return null;
 }
@@ -316,7 +325,12 @@ export async function buildKudePdfBuffer(input: BuildKudePdfInput): Promise<Buff
 
   for (const bytes of candidates) {
     try {
-      logoImg = await pdfDoc.embedPng(bytes);
+      // Acepta PNG o JPG (el logo del cliente puede venir en cualquiera de los dos).
+      try {
+        logoImg = await pdfDoc.embedPng(bytes);
+      } catch {
+        logoImg = await pdfDoc.embedJpg(bytes);
+      }
       logoW = logoMaxW;
       const sc = logoW / logoImg.width;
       logoH = logoImg.height * sc;

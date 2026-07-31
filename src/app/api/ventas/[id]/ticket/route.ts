@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
+import { membreteTicket } from "@/lib/documentos/membrete";
 
 /**
  * GET /api/ventas/[id]/ticket?w=58|80&mode=comandas&auto=1
@@ -216,7 +217,7 @@ function renderCopia(opts: {
     : `<div class="footer-cocina">${formatFecha(venta.fecha)}</div>`;
 
   return `<section class="paper ${isLast ? "last" : ""}">
-    ${headerCocina || `<h1>${NEGOCIO}</h1>`}
+    ${headerCocina || membreteTicket()}
     <div class="meta">
       ${escapeHtml(venta.numero_control)}<br>
       ${formatFecha(venta.fecha)}

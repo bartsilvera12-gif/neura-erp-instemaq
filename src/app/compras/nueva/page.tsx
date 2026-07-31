@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MontoInput from "@/components/ui/MontoInput";
+import SmartSearchSelect from "@/components/ui/SmartSearchSelect";
 import { saveCompra } from "@/lib/compras/storage";
 import { getProveedores, proveedorExiste, createProveedor } from "@/lib/proveedores/storage";
 import {
@@ -178,13 +179,12 @@ export default function NuevaCompraPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleProductoSelectChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const id = e.target.value;
+  function handleProductoSelect(id: string) {
     const p = productos.find((x) => x.id === id);
     setProductoCreado(null);
     setForm((prev) => ({
       ...prev,
-      producto_id: e.target.value,
+      producto_id: id,
       costo_unitario_input: p ? String(p.costo_promedio) : "",
       precio_venta: p ? String(p.precio_venta) : "",
     }));
@@ -386,20 +386,23 @@ export default function NuevaCompraPage() {
               <label className={labelClass}>
                 Proveedor <span className="text-red-500">*</span>
               </label>
-              <select
+              <SmartSearchSelect
                 name="proveedor_id"
-                value={form.proveedor_id}
-                onChange={(e) => { handleChange(e); setProveedorCreado(null); }}
-                className={inputClass}
                 required
-              >
-                <option value="">Seleccionar proveedor...</option>
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} — RUC {p.ruc}
-                  </option>
-                ))}
-              </select>
+                value={form.proveedor_id}
+                onChange={(id) => {
+                  setProveedorCreado(null);
+                  setForm((prev) => ({ ...prev, proveedor_id: id }));
+                }}
+                placeholder="Buscar proveedor por nombre o RUC…"
+                emptyText="No se encontró ningún proveedor"
+                options={proveedores.map((p) => ({
+                  id: p.id,
+                  label: p.nombre,
+                  sub: p.ruc ? `RUC ${p.ruc}` : undefined,
+                  keywords: p.ruc ?? undefined,
+                }))}
+              />
 
               {proveedorCreado && (
                 <p className="mt-1.5 text-xs text-green-600">
@@ -465,20 +468,20 @@ export default function NuevaCompraPage() {
               <label className={labelClass}>
                 Producto <span className="text-red-500">*</span>
               </label>
-              <select
+              <SmartSearchSelect
                 name="producto_id"
-                value={form.producto_id}
-                onChange={handleProductoSelectChange}
-                className={inputClass}
                 required
-              >
-                <option value="">Seleccionar producto...</option>
-                {productos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} — {p.sku} (stock: {p.stock_actual})
-                  </option>
-                ))}
-              </select>
+                value={form.producto_id}
+                onChange={handleProductoSelect}
+                placeholder="Buscar producto por nombre o SKU…"
+                emptyText="No se encontró ningún producto"
+                options={productos.map((p) => ({
+                  id: p.id,
+                  label: p.nombre,
+                  sub: `${p.sku} · stock: ${p.stock_actual}`,
+                  keywords: p.sku,
+                }))}
+              />
 
               {productoSeleccionado && !productoCreado && (
                 <p className="mt-1.5 text-xs text-gray-400">
