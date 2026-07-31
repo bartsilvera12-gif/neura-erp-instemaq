@@ -32,6 +32,8 @@ import {
   BarChart3,
   Wallet,
   Banknote,
+  Truck,
+  Inbox,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
@@ -113,6 +115,9 @@ const MENU_STRUCTURE: MenuItem[] = [
       { label: "Proveedores", href: "/proveedores" },
     ],
   },
+  // Remisión y Recepción son módulos independientes: emitir vs recibir mercadería.
+  { key: "remision", slug: "remision", label: "Remisión", href: "/notas-remision", icon: Truck },
+  { key: "recepcion", slug: "recepcion", label: "Recepción", href: "/recepcion", icon: Inbox },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   {
     key: "notas_credito", slug: "notas_credito", label: "Notas de crédito",
@@ -142,7 +147,7 @@ const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "gestion-clientes", "ventas"] },
   { id: "finanzas", titulo: "Finanzas", keys: ["cobros", "gastos", "notas_credito"] },
-  { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras"] },
+  { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision", "recepcion"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
   { id: "administracion", titulo: "Administración", keys: ["usuarios", "configuracion"] },
 ];

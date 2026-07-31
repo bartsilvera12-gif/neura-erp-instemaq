@@ -15,6 +15,8 @@ const SIDEBAR_SLUG_HREF_ORDER: { slug: string; href: string }[] = [
   { slug: "inventario", href: "/inventario" },
   { slug: "clientes", href: "/clientes" },
   { slug: "compras", href: "/compras" },
+  { slug: "remision", href: "/notas-remision" },
+  { slug: "recepcion", href: "/recepcion" },
   { slug: "gastos", href: "/gastos" },
   { slug: "cobros", href: "/pagos" },
   { slug: "comisiones", href: "/comisiones" },
@@ -133,6 +135,9 @@ export function pathRequiresModuleSlug(pathname: string): string | null {
     return "conversaciones";
   }
   if (p.startsWith("/notas-credito")) return "notas_credito";
+  // Remisión (emitir) y Recepción (recibir) son módulos independientes.
+  if (p.startsWith("/notas-remision")) return "remision";
+  if (p.startsWith("/recepcion")) return "recepcion";
   if (p.startsWith("/ventas")) return "ventas";
   if (p.startsWith("/inventario")) return "inventario";
   if (p.startsWith("/clientes")) return "clientes";
