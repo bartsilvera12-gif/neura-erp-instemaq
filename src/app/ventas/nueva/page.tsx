@@ -553,28 +553,8 @@ export default function NuevaVentaPage() {
     return () => { if (comboTimerRef.current) clearTimeout(comboTimerRef.current); };
   }, [comboQuery]);
 
-  // Cargar cajas abiertas y resolver la caja activa del cajero.
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const res = await fetchWithSupabaseSession("/api/caja/estado", { cache: "no-store" });
-        const j = await res.json();
-        const list = ((j?.data?.cajas ?? []) as Array<{ caja: { id: string; numero_caja: number; estado: string } }>)
-          .map((r) => r.caja)
-          .filter((c) => c.estado === "abierta")
-          .map((c) => ({ id: String(c.id), numero_caja: Number(c.numero_caja) || 1 }));
-        if (cancel) return;
-        setCajasAbiertas(list);
-        // Preferir la guardada; si no está entre las abiertas, tomar la única (si hay una).
-        let activa = "";
-        try { activa = localStorage.getItem("caja_activa_id") ?? ""; } catch { activa = ""; }
-        if (!list.some((c) => c.id === activa)) activa = list.length === 1 ? list[0].id : "";
-        setCajaActivaId(activa);
-      } catch { /* la caja se valida igual en el server */ }
-    })();
-    return () => { cancel = true; };
-  }, []);
+  // Esta instancia no usa el módulo Caja: no se consulta el estado de cajas y
+  // la venta no depende de tener una caja abierta.
 
   // Persistir la caja activa elegida (por navegador del cajero).
   useEffect(() => {
@@ -969,13 +949,10 @@ export default function NuevaVentaPage() {
       const v = resultado.venta;
       const generaNota = v.genera_nota_remision === true || !!v.nota_remision_numero;
       const ticketUrl = `/api/ventas/${v.id}/ticket?mode=comandas&auto=1`;
-      const facturaUrl = `/api/ventas/${v.id}/factura?auto=1`;
       const remisionUrl = `/api/ventas/${v.id}/ticket?tipo=remision&auto=1`;
-      // TODAS las ventas se facturan: siempre abrimos la FACTURA. Sin cliente
-      // sale a nombre de "Consumidor Final". El ticket interno queda disponible
-      // desde el listado si hace falta.
-      void ticketUrl;
-      const docUrl = facturaUrl;
+      // Esta instancia no usa el autoimpresor de facturas: el documento de la
+      // venta es el ticket. La factura electrónica se emite aparte desde SIFEN.
+      const docUrl = ticketUrl;
       // Se reutiliza la ventana abierta durante el clic. Si el navegador la
       // bloqueó igual, se intenta abrir ahora como último recurso.
       if (ventanaDoc && !ventanaDoc.closed) {
@@ -1920,14 +1897,6 @@ export default function NuevaVentaPage() {
                 className="rounded-lg bg-[#0EA5E9] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0284C7]"
               >
                 Abrir ticket
-              </a>
-              <a
-                href={`/api/ventas/${postVenta.id}/factura?auto=1`}
-                target="_blank"
-                rel="noopener"
-                className="rounded-lg border border-[#4FAEB2]/40 bg-[#4FAEB2]/[0.08] px-4 py-2.5 text-sm font-medium text-[#3F8E91] hover:bg-[#4FAEB2]/[0.16]"
-              >
-                Imprimir factura
               </a>
               {postVenta.generaNota && (
                 <a
