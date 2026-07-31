@@ -1724,41 +1724,79 @@ function DashInventario({
 
       {/* Top por valor */}
       <motion.div whileHover={{ y: -2 }} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 transition-shadow hover:shadow-md">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-          Top productos por valor de inventario
-        </h3>
-        {topPorValor.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">Sin productos registrados.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="w-10 px-3 py-3">
-                    <input type="checkbox" className="rounded border-slate-300 text-[#0EA5E9] focus:ring-[#0EA5E9]" />
-                  </th>
-                  {["Producto", "SKU", "Stock", "Costo promedio", "Valor inventario"].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-slate-500 px-3 py-3 uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {topPorValor.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-3 py-2.5">
-                      <input type="checkbox" className="rounded border-slate-300 text-[#0EA5E9] focus:ring-[#0EA5E9]" />
-                    </td>
-                    <td className="px-3 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200">{p.nombre}</td>
-                    <td className="px-3 py-2.5 font-mono text-xs text-slate-500 dark:text-slate-400">{p.sku}</td>
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-slate-700 dark:text-slate-300">{p.stock_actual}</td>
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-slate-500 dark:text-slate-400">Gs. {formatGs(p.costo_promedio)}</td>
-                    <td className="px-3 py-2.5 text-xs tabular-nums font-semibold text-slate-800 dark:text-slate-200">Gs. {formatGs(p.valor)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {(() => {
+          const totalValor = topPorValor.reduce((s, p) => s + p.valor, 0);
+          const sinCosto = topPorValor.length > 0 && topPorValor.every((p) => !p.costo_promedio);
+          return (
+            <>
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Top productos por valor de inventario
+                </h3>
+                {!sinCosto && topPorValor.length > 0 && (
+                  <p className="text-sm font-bold tabular-nums text-slate-900">
+                    Gs. {formatGs(totalValor)}
+                    <span className="ml-1.5 text-xs font-medium text-slate-400">valorizado</span>
+                  </p>
+                )}
+              </div>
+
+              {topPorValor.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-400">Sin productos registrados.</p>
+              ) : (
+                <>
+                  {sinCosto && (
+                    <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Los productos todavía no tienen <strong>costo</strong> cargado, por eso el valor del
+                      inventario figura en cero. Cargá el costo en cada producto o al registrar la compra.
+                    </p>
+                  )}
+                  <div className="overflow-x-auto rounded-lg border border-slate-200">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-slate-200 bg-slate-50/80">
+                        <tr>
+                          <th className="w-9 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">#</th>
+                          <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Producto</th>
+                          <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">Stock</th>
+                          <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">Costo prom.</th>
+                          <th className="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {topPorValor.map((p, i) => (
+                          <tr key={p.id} className="transition-colors hover:bg-[#4FAEB2]/[0.05]">
+                            <td className="px-3 py-3 text-xs font-semibold tabular-nums text-slate-300">{i + 1}</td>
+                            <td className="px-3 py-3">
+                              <span className="block text-sm font-medium leading-tight text-slate-900">{p.nombre}</span>
+                              <span className="mt-0.5 block font-mono text-[11px] text-slate-400">{p.sku}</span>
+                            </td>
+                            <td className="px-3 py-3 text-right">
+                              <span
+                                className={`inline-flex min-w-[2.25rem] justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ${
+                                  p.stock_actual <= 0
+                                    ? "bg-red-50 text-red-600 ring-red-200"
+                                    : "bg-slate-50 text-slate-700 ring-slate-200"
+                                }`}
+                              >
+                                {p.stock_actual}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-right text-sm tabular-nums text-slate-500">
+                              {p.costo_promedio ? `Gs. ${formatGs(p.costo_promedio)}` : "—"}
+                            </td>
+                            <td className="px-3 py-3 text-right text-sm font-bold tabular-nums text-slate-900">
+                              {p.valor ? `Gs. ${formatGs(p.valor)}` : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
       </motion.div>
 
     </div>
