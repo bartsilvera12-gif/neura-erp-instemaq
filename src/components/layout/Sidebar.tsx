@@ -34,6 +34,7 @@ import {
   Percent,
   ChefHat,
   Utensils,
+  Wallet,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
@@ -143,6 +144,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     ],
   },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
+  { key: "cobros", slug: "cobros", label: "Cobros", href: "/cobros", icon: Wallet },
   // Pagos oculto en instancia Instemaq (no usa este módulo).
   { key: "comisiones", slug: "comisiones", label: "Comisiones", href: "/comisiones", icon: Percent },
   {
@@ -185,6 +187,55 @@ const MENU_STRUCTURE: MenuItem[] = [
     children: [{ label: "Tickets / Comprobantes", href: "/sorteos/tickets", exactMatch: true }],
   },
 ];
+
+/** Agrupación del menú en categorías colapsables (estilo secciones). */
+const CATEGORY_ORDER = [
+  "INICIO",
+  "COMERCIAL",
+  "INVENTARIO",
+  "FINANZAS",
+  "OMNICANAL",
+  "MARKETING",
+  "SISTEMA",
+] as const;
+
+const CATEGORY_LABEL: Record<string, string> = {
+  INICIO: "Inicio",
+  COMERCIAL: "Comercial",
+  INVENTARIO: "Inventario",
+  FINANZAS: "Finanzas",
+  OMNICANAL: "Omnicanal",
+  MARKETING: "Marketing",
+  SISTEMA: "Sistema",
+};
+
+/** slug → categoría. Ítems sin mapa caen en SISTEMA. */
+const ITEM_CATEGORY: Record<string, string> = {
+  dashboard: "INICIO",
+  ventas: "COMERCIAL",
+  proyectos: "COMERCIAL",
+  clientes: "COMERCIAL",
+  "gestion-clientes": "COMERCIAL",
+  crm: "COMERCIAL",
+  notas_credito: "COMERCIAL",
+  inventario: "INVENTARIO",
+  compras: "INVENTARIO",
+  recetas: "INVENTARIO",
+  gastos: "FINANZAS",
+  cobros: "FINANZAS",
+  comisiones: "FINANZAS",
+  planes: "FINANZAS",
+  conversaciones: "OMNICANAL",
+  "historial-omnicanal": "OMNICANAL",
+  "conversaciones-finalizadas": "OMNICANAL",
+  monitoreo: "OMNICANAL",
+  campanas: "OMNICANAL",
+  marketing: "MARKETING",
+  marketing_ops: "MARKETING",
+  sorteos: "MARKETING",
+  usuarios: "SISTEMA",
+  configuracion: "SISTEMA",
+};
 
 function modulosSyntheticFromMenu(): ModuloEmpresa[] {
   return MENU_STRUCTURE.map((item) => ({
@@ -336,6 +387,7 @@ export default function Sidebar() {
     compras: true,
   });
   const [cargando, setCargando] = useState(true);
+  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
   const [esSuperAdmin, setEsSuperAdmin] = useState(false);
   /** Filtro visual del menú (no altera permisos ni rutas). */
   const [menuSearchQuery, setMenuSearchQuery] = useState("");
@@ -623,30 +675,58 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Menú principal */}
-        <div className="space-y-0.5">
-          {!collapsed && mainItemsFiltered.length > 0 && (
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">General</p>
-          )}
-          {cargando ? (
-            <div className="px-3 py-2 text-sm text-slate-500 animate-pulse">Cargando…</div>
-          ) : (
-            mainItemsFiltered.map((item) => (
-              <NavItem
-                key={item.key}
-                item={item}
-                itemId={slugToId(item.slug)}
-                isActive={isActive(item.slug, item.href)}
-                isFavorito={favoritos.includes(slugToId(item.slug))}
-                onToggleFavorito={handleToggleFavorito}
-                hasAccess={hasAccess(item.slug)}
-                collapsed={collapsed}
-                expanded={expandedItems[item.key] ?? false}
-                onToggleExpand={() => toggleExpand(item.key)}
-              />
-            ))
-          )}
-        </div>
+        {/* Menú principal — agrupado por categorías colapsables */}
+        {cargando ? (
+          <div className="px-3 py-2 text-sm text-slate-500 animate-pulse">Cargando…</div>
+        ) : (
+          CATEGORY_ORDER.map((cat) => {
+            const items = mainItemsFiltered.filter(
+              (it) => (ITEM_CATEGORY[it.slug] ?? "SISTEMA") === cat
+            );
+            if (items.length === 0) return null;
+            const catCollapsed = collapsedCats[cat] ?? false;
+            const renderItems = collapsed || !catCollapsed;
+            return (
+              <div key={cat} className="mb-3">
+                {!collapsed && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsedCats((prev) => ({ ...prev, [cat]: !catCollapsed }))
+                    }
+                    className="mb-1 flex w-full items-center justify-between rounded px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:text-slate-300"
+                    aria-expanded={!catCollapsed}
+                  >
+                    <span>{CATEGORY_LABEL[cat] ?? cat}</span>
+                    {catCollapsed ? (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
+                {renderItems && (
+                  <div className="space-y-0.5">
+                    {items.map((item) => (
+                      <NavItem
+                        key={item.key}
+                        item={item}
+                        itemId={slugToId(item.slug)}
+                        isActive={isActive(item.slug, item.href)}
+                        isFavorito={favoritos.includes(slugToId(item.slug))}
+                        onToggleFavorito={handleToggleFavorito}
+                        hasAccess={hasAccess(item.slug)}
+                        collapsed={collapsed}
+                        expanded={expandedItems[item.key] ?? false}
+                        onToggleExpand={() => toggleExpand(item.key)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
 
         {/* Admin */}
         {esSuperAdmin && adminEmpresasMatchesQuery(menuSearchQuery) && (
