@@ -53,9 +53,15 @@ export default function InventarioPage() {
   const [filtroValuacion,  setFiltroValuacion]  = useState<MetodoValuacion | "">("");
   const [filtroUbicacion,  setFiltroUbicacion]  = useState<string>(""); // "", "__sin__" o id
   const [filtroTipo,       setFiltroTipo]       = useState<"todos" | "vendibles" | "insumos" | "mixtos">("todos");
-  const [tab,              setTab]               = useState<"reventa" | "menu" | "materia">("reventa");
   const [cargandoLista,    setCargandoLista]     = useState(true);
   const [soloStockBajo,    setSoloStockBajo]    = useState(false);
+  /** Búsqueda inteligente: matchea nombre + SKU, sin acentos y por palabras sueltas. */
+  const [busqueda,         setBusqueda]         = useState("");
+  const [filtroCategoria,  setFiltroCategoria]  = useState("");
+  const [filtroStock,      setFiltroStock]      = useState<"todos" | "bajo" | "sin" | "con">("todos");
+  const [categorias,       setCategorias]       = useState<{ id: string; nombre: string }[]>([]);
+  const [porPagina,        setPorPagina]        = useState(25);
+  const [pagina,           setPagina]           = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,12 +81,36 @@ export default function InventarioPage() {
         setUbicaciones((j.data?.ubicaciones ?? []) as UbicacionMin[]);
       })
       .catch(() => undefined);
+    // Categorías para el filtro
+    fetch("/api/inventario/categorias", { credentials: "include", cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled || !j?.success) return;
+        setCategorias((j.data?.categorias ?? []) as { id: string; nombre: string }[]);
+      })
+      .catch(() => undefined);
     return () => { cancelled = true; };
   }, [refreshKey]);
 
   const ubicacionById = new Map(ubicaciones.map((u) => [u.id, u]));
 
   const productos = todos.filter((p) => {
+    // Búsqueda inteligente: cada palabra debe aparecer en el nombre o el SKU.
+    // Sin acentos y sin importar el orden ("35 aspir" encuentra "Aspiradora … 35 litros").
+    const términos = foldText(busqueda).split(/\s+/).filter(Boolean);
+    if (términos.length > 0) {
+      const heno = `${foldText(p.nombre)} ${foldText(p.sku ?? "")}`;
+      if (!términos.every((t) => heno.includes(t))) return false;
+    }
+
+    // Categoría
+    if (filtroCategoria && p.categoria_principal_id !== filtroCategoria) return false;
+
+    // Estado de stock
+    if (filtroStock === "sin" && p.stock_actual > 0) return false;
+    if (filtroStock === "con" && p.stock_actual <= 0) return false;
+    if (filtroStock === "bajo" && !(p.stock_actual <= p.stock_minimo)) return false;
+
     // Nombre — fold accents/diacritics ("atun" matchea "ATÚN")
     if (filtroPorNombre.trim() !== "" &&
         !foldText(p.nombre).includes(foldText(filtroPorNombre.trim())))
@@ -131,30 +161,31 @@ export default function InventarioPage() {
       if (filtroTipo === "insumos" && !(i && !v)) return false;
     }
 
-    // Filtro por tab (Reventa | Menú | Materia prima)
-    const esVendible    = p.es_vendible !== false;
-    const esInsumo      = p.es_insumo === true;
-    const controlaStock = p.controla_stock !== false; // default true
-    if (tab === "reventa") {
-      // vendibles que mueven stock real (gaseosas, postres comprados, etc.)
-      if (!esVendible || !controlaStock || esInsumo) return false;
-    } else if (tab === "menu") {
-      // productos preparados (pizzas, lomitos, combos): vendibles SIN stock
-      if (!esVendible || controlaStock || esInsumo) return false;
-    } else {
-      // materia prima / insumos
-      if (!esInsumo) return false;
-    }
-
+    // Instancia sin separación gastronómica: el listado muestra todos los productos.
     return true;
   });
 
+  // ── Paginación ────────────────────────────────────────────────────────────
+  const totalPaginas = porPagina === 0 ? 1 : Math.max(1, Math.ceil(productos.length / porPagina));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const productosPagina =
+    porPagina === 0
+      ? productos
+      : productos.slice((paginaActual - 1) * porPagina, paginaActual * porPagina);
+  const desdeItem = productos.length === 0 ? 0 : (paginaActual - 1) * (porPagina || productos.length) + 1;
+  const hastaItem = porPagina === 0 ? productos.length : Math.min(paginaActual * porPagina, productos.length);
+
   const hayFiltrosActivos =
+    busqueda || filtroCategoria || filtroStock !== "todos" ||
     filtroPorNombre || filtroPorSku || filtroPorCosto ||
     filtroPorPrecio || filtroValuacion || filtroUbicacion || soloStockBajo ||
     filtroTipo !== "todos";
 
   function limpiarFiltros() {
+    setPagina(1);
+    setBusqueda("");
+    setFiltroCategoria("");
+    setFiltroStock("todos");
     setFiltroPorNombre("");
     setFiltroPorSku("");
     setFiltroPorCosto("");
@@ -197,31 +228,6 @@ export default function InventarioPage() {
         </div>
       </div>
 
-      {/* Tabs gastronómicos (filtran por tipo de producto) */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-6" aria-label="Tabs">
-          {([
-            { id: "reventa", label: "Reventa", subtitle: "Productos comprados y revendidos" },
-            { id: "menu",    label: "Menú",    subtitle: "Productos preparados por el local" },
-            { id: "materia", label: "Materia prima", subtitle: "Insumos para costeo/recetas" },
-          ] as const).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition-colors ${
-                tab === t.id
-                  ? "border-amber-500 text-amber-600"
-                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}
-              title={t.subtitle}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm ring-1 ring-[#4FAEB2]/15 p-6">
 
         <div className="flex flex-wrap justify-between items-center gap-3 mb-5">
@@ -233,14 +239,99 @@ export default function InventarioPage() {
             >
               Nuevo producto
             </Link>
-            <input
-              type="text"
-              placeholder="Buscar por nombre..."
-              value={filtroPorNombre}
-              onChange={(e) => setFiltroPorNombre(e.target.value)}
-              className="w-64 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:outline-none bg-white"
-            />
           </div>
+        </div>
+
+        {/* Buscador inteligente + filtros útiles */}
+        <div className="mb-5 flex flex-wrap items-end gap-3">
+          <div className="min-w-[16rem] flex-1">
+            <label className="mb-1 block text-xs font-medium text-slate-500">Buscar</label>
+            <div className="relative">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Nombre o SKU… (ej: «compresor 100» o «INS-0006»)"
+                value={busqueda}
+                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20"
+              />
+              {busqueda && (
+                <button
+                  type="button"
+                  onClick={() => { setBusqueda(""); setPagina(1); }}
+                  aria-label="Limpiar búsqueda"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="min-w-[11rem]">
+            <label className="mb-1 block text-xs font-medium text-slate-500">Categoría</label>
+            <select
+              value={filtroCategoria}
+              onChange={(e) => { setFiltroCategoria(e.target.value); setPagina(1); }}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20"
+            >
+              <option value="">Todas</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Stock</label>
+            <div className="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              {([
+                { id: "todos", label: "Todos" },
+                { id: "con",   label: "Con stock" },
+                { id: "bajo",  label: "Bajo" },
+                { id: "sin",   label: "Sin stock" },
+              ] as const).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => { setFiltroStock(o.id); setPagina(1); }}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                    filtroStock === o.id
+                      ? "bg-white text-[#3F8E91] shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {hayFiltrosActivos && (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            >
+              Limpiar
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-slate-500">
+            {productos.length === todos.length
+              ? `${todos.length} productos`
+              : `${productos.length} de ${todos.length} productos`}
+          </span>
         </div>
 
         {/* Filtros por columna — fila 1 (SKU/Costo/Precio) oculta para UX simplificada */}
@@ -371,8 +462,8 @@ export default function InventarioPage() {
                 <th className="py-3 pr-4 font-medium">SKU</th>
                 <th className="py-3 pr-4 font-medium">Costo Prom.</th>
                 <th className="py-3 pr-4 font-medium">Precio Venta</th>
-                <th className={`py-3 pr-4 font-medium text-center ${tab === "reventa" ? "" : "hidden"}`}>Stock</th>
-                <th className={`py-3 pr-4 font-medium text-center ${tab === "reventa" ? "" : "hidden"}`}>Stock Mín.</th>
+                <th className={`py-3 pr-4 font-medium text-center`}>Stock</th>
+                <th className={`py-3 pr-4 font-medium text-center`}>Stock Mín.</th>
                 <th className="py-3 pr-4 font-medium">Unidad</th>
                 <th className="py-3 pr-4 font-medium">Ubicación</th>
                 <th className="py-3 pr-4 font-medium">Valuación</th>
@@ -384,7 +475,7 @@ export default function InventarioPage() {
             </thead>
 
             <tbody>
-              {productos.map((p) => {
+              {productosPagina.map((p) => {
                 const stockBajo = p.stock_actual <= p.stock_minimo;
                 const margen = calcularMargenVenta(p.costo_promedio, p.precio_venta);
                 return (
@@ -405,12 +496,12 @@ export default function InventarioPage() {
                     <td className="py-4 pr-4 text-gray-500 font-mono">{p.sku}</td>
                     <td className="py-4 pr-4 text-gray-700">{formatGs(p.costo_promedio)}</td>
                     <td className="py-4 pr-4 text-gray-700">{formatGs(p.precio_venta)}</td>
-                    <td className={`py-4 pr-4 text-center ${tab === "reventa" ? "" : "hidden"}`}>
+                    <td className={`py-4 pr-4 text-center`}>
                       <span className={`font-semibold ${stockBajo ? "text-red-600" : "text-gray-800"}`}>
                         {p.stock_actual}
                       </span>
                     </td>
-                    <td className={`py-4 pr-4 text-center text-gray-500 ${tab === "reventa" ? "" : "hidden"}`}>{p.stock_minimo}</td>
+                    <td className={`py-4 pr-4 text-center text-gray-500`}>{p.stock_minimo}</td>
                     <td className="py-4 pr-4 text-gray-600">{p.unidad_medida}</td>
                     <td className="py-4 pr-4 text-gray-600 text-xs">
                       {p.ubicacion_principal_id
@@ -450,6 +541,52 @@ export default function InventarioPage() {
 
           </table>
         </EdgeScrollArea>
+
+        {/* Paginación */}
+        {productos.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span>Mostrar</span>
+              <select
+                value={porPagina}
+                onChange={(e) => { setPorPagina(Number(e.target.value)); setPagina(1); }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20"
+              >
+                {[25, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+                <option value={0}>Todos</option>
+              </select>
+              <span>
+                — {desdeItem}‑{hastaItem} de {productos.length}
+              </span>
+            </div>
+
+            {totalPaginas > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPagina((n) => Math.max(1, n - 1))}
+                  disabled={paginaActual === 1}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ← Anterior
+                </button>
+                <span className="px-2 text-xs tabular-nums text-slate-500">
+                  Página <strong className="text-slate-800">{paginaActual}</strong> de {totalPaginas}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPagina((n) => Math.min(totalPaginas, n + 1))}
+                  disabled={paginaActual === totalPaginas}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
