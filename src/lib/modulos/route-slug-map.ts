@@ -18,6 +18,7 @@ const SIDEBAR_SLUG_HREF_ORDER: { slug: string; href: string }[] = [
   { slug: "remision", href: "/notas-remision" },
   { slug: "recepcion", href: "/recepcion" },
   { slug: "recibos", href: "/recibos" },
+  { slug: "presupuestos", href: "/presupuestos" },
   { slug: "gastos", href: "/gastos" },
   { slug: "cobros", href: "/pagos" },
   { slug: "comisiones", href: "/comisiones" },
@@ -140,6 +141,7 @@ export function pathRequiresModuleSlug(pathname: string): string | null {
   if (p.startsWith("/notas-remision")) return "remision";
   if (p.startsWith("/recepcion")) return "recepcion";
   if (p.startsWith("/recibos")) return "recibos";
+  if (p.startsWith("/presupuestos")) return "presupuestos";
   if (p.startsWith("/ventas")) return "ventas";
   if (p.startsWith("/inventario")) return "inventario";
   if (p.startsWith("/clientes")) return "clientes";

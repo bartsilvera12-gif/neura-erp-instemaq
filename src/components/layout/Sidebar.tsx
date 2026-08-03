@@ -112,13 +112,15 @@ const MENU_STRUCTURE: MenuItem[] = [
     href: "/compras",
     icon: Package,
     children: [
-      { label: "Órdenes", href: "/compras" },
+      { label: "Compras", href: "/compras", exactMatch: true },
+      { label: "Órdenes de compra", href: "/compras/ordenes" },
       { label: "Proveedores", href: "/proveedores" },
     ],
   },
   // Remisión y Recepción son módulos independientes: emitir vs recibir mercadería.
   { key: "remision", slug: "remision", label: "Remisión", href: "/notas-remision", icon: Truck },
   { key: "recepcion", slug: "recepcion", label: "Recepción", href: "/recepcion", icon: Inbox },
+  { key: "presupuestos", slug: "presupuestos", label: "Presupuestos", href: "/presupuestos", icon: FileText },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   // Recibos de dinero: comprobante interno de dinero recibido (no fiscal).
   { key: "recibos", slug: "recibos", label: "Recibos", href: "/recibos", icon: ReceiptText },
@@ -148,7 +150,7 @@ const MENU_STRUCTURE: MenuItem[] = [
  */
 const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
-  { id: "comercial", titulo: "Comercial", keys: ["clientes", "gestion-clientes", "ventas"] },
+  { id: "comercial", titulo: "Comercial", keys: ["clientes", "gestion-clientes", "ventas", "presupuestos"] },
   { id: "finanzas", titulo: "Finanzas", keys: ["cobros", "recibos", "gastos", "notas_credito"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision", "recepcion"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
