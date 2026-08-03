@@ -5,10 +5,11 @@ import Link from "next/link";
 import { getMovimientos } from "@/lib/inventario/storage";
 import type { MovimientoInventario, TipoMovimiento, OrigenMovimiento } from "@/lib/inventario/types";
 
+/** Paleta blanco + turquesa Zentra. La entrada usa el turquesa de marca. */
 const tipoBadge: Record<TipoMovimiento, string> = {
-  ENTRADA: "bg-green-100 text-green-700",
-  SALIDA: "bg-red-100 text-red-700",
-  AJUSTE: "bg-yellow-100 text-yellow-700",
+  ENTRADA: "bg-[#4FAEB2]/10 text-[#2F6E71] ring-1 ring-[#4FAEB2]/30",
+  SALIDA: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  AJUSTE: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
 };
 
 const origenLabel: Record<OrigenMovimiento, string> = {
@@ -19,10 +20,10 @@ const origenLabel: Record<OrigenMovimiento, string> = {
 };
 
 const origenBadge: Record<OrigenMovimiento, string> = {
-  compra: "bg-blue-50 text-blue-600",
-  venta: "bg-purple-50 text-purple-600",
-  ajuste_manual: "bg-gray-100 text-gray-600",
-  inventario_inicial: "bg-orange-50 text-orange-600",
+  compra: "bg-white text-[#3F8E91] ring-1 ring-[#4FAEB2]/35",
+  venta: "bg-white text-slate-600 ring-1 ring-slate-200",
+  ajuste_manual: "bg-white text-slate-500 ring-1 ring-slate-200",
+  inventario_inicial: "bg-white text-slate-500 ring-1 ring-slate-200",
 };
 
 function formatGs(valor: number) {
@@ -184,7 +185,7 @@ export default function MovimientosPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b text-gray-500">
+              <tr className="border-b border-[#4FAEB2]/20 bg-[#4FAEB2]/[0.06] text-slate-600">
                 <th className="py-3 pr-4 font-medium">Producto</th>
                 <th className="py-3 pr-4 font-medium">SKU</th>
                 <th className="py-3 pr-4 font-medium">Tipo</th>
@@ -210,17 +211,17 @@ export default function MovimientosPage() {
                     m.tipo === "ENTRADA" ? "+" : m.tipo === "SALIDA" ? "−" : m.cantidad >= 0 ? "+" : "";
                   const cantidadColor =
                     m.tipo === "ENTRADA"
-                      ? "text-green-600"
+                      ? "text-[#3F8E91]"
                       : m.tipo === "SALIDA"
-                      ? "text-red-600"
-                      : "text-yellow-600";
+                      ? "text-slate-500"
+                      : "text-amber-600";
 
                   return (
-                    <tr key={m.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <tr key={m.id} className="border-b border-slate-100 last:border-0 transition-colors hover:bg-[#4FAEB2]/[0.05]">
                       <td className="py-4 pr-4 font-medium text-gray-800">{m.producto_nombre}</td>
                       <td className="py-4 pr-4 text-gray-500 font-mono">{m.producto_sku}</td>
                       <td className="py-4 pr-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tipoBadge[m.tipo]}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${tipoBadge[m.tipo]}`}>
                           {m.tipo}
                         </span>
                       </td>
@@ -231,12 +232,21 @@ export default function MovimientosPage() {
                         {formatGs(m.costo_unitario)}
                       </td>
                       <td className="py-4 pr-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${origenBadge[m.origen]}`}>
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${origenBadge[m.origen]}`}>
                           {origenLabel[m.origen]}
                         </span>
                       </td>
                       <td className="py-4 pr-4 text-gray-600 text-xs">
-                        {m.usuario_nombre ?? <span className="text-gray-300">—</span>}
+                        {m.usuario_nombre ? (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-slate-700">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#4FAEB2]/15 text-[10px] font-bold text-[#3F8E91]">
+                              {m.usuario_nombre.trim().charAt(0).toUpperCase()}
+                            </span>
+                            {m.usuario_nombre}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300" title="Movimiento anterior al registro de usuario">sin registro</span>
+                        )}
                       </td>
                       <td className="py-4 text-gray-500 text-xs tabular-nums">
                         {formatFecha(m.fecha)}

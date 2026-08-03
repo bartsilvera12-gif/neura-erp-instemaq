@@ -37,6 +37,9 @@ export interface CreateVentaPgParams {
   montoIvaDeclarado: number;
   totalDeclarado: number;
   pedidoCocina?: CreateVentaPedidoCocinaInput | null;
+  /** Auditoría: quién registra la venta. Se propaga a los movimientos de stock. */
+  createdBy?: string | null;
+  usuarioNombre?: string | null;
 }
 
 function recalcTotals(items: CreateVentaItemInput[]) {
@@ -241,6 +244,8 @@ export async function createVentaTransaccionalPg(
         referencia: numeroControl,
         fecha: fechaIso,
         venta_id: ventaId,
+        created_by: params.createdBy ?? null,
+        usuario_nombre: params.usuarioNombre ?? null,
       });
       if (mov.error) throw new Error(mov.error.message);
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserAndEmpresa } from "@/lib/middleware/auth";
 import { fetchDataSchemaForEmpresaId } from "@/lib/supabase/empresa-data-schema";
 import { createVentaTransaccionalPg } from "@/lib/ventas/server/create-venta-pg";
+import { getAuthWithRol } from "@/lib/middleware/auth";
 import type { CreateVentaItemInput } from "@/lib/ventas/server/create-venta-pg";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
@@ -174,6 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     const schema = await fetchDataSchemaForEmpresaId(auth.empresa_id);
+    const authRol = await getAuthWithRol(request);
 
     const { ventaId, numeroControl, fechaIso } = await createVentaTransaccionalPg({
       schema,
@@ -190,6 +192,9 @@ export async function POST(request: NextRequest) {
       montoIvaDeclarado,
       totalDeclarado,
       pedidoCocina,
+      // Auditoría de stock: todo movimiento queda con el usuario que lo generó.
+      createdBy: auth.usuarioCatalogId ?? auth.user?.id ?? null,
+      usuarioNombre: authRol?.nombre?.trim() || auth.user?.email || null,
     });
 
     let sub = 0;

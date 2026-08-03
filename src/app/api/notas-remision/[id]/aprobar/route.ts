@@ -144,6 +144,8 @@ export async function POST(
           referencia: nr.numero,
           fecha: nowIso,
           ubicacion_id: nr.ubicacion_origen_id,
+          created_by: auth.usuarioCatalogId ?? auth.user?.id ?? null,
+          usuario_nombre: aprobador,
         },
         {
           empresa_id: auth.empresa_id,
@@ -157,6 +159,8 @@ export async function POST(
           referencia: nr.numero,
           fecha: nowIso,
           ubicacion_id: nr.ubicacion_destino_id,
+          created_by: auth.usuarioCatalogId ?? auth.user?.id ?? null,
+          usuario_nombre: aprobador,
         },
       ];
       const movIns = await supabase.from("movimientos_inventario").insert(movs);
