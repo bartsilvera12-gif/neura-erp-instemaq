@@ -61,17 +61,19 @@ export async function POST(
 
     const nrQ = await supabase
       .from("notas_remision")
-      .select("id, empresa_id, numero, estado, ubicacion_origen_id, ubicacion_destino_id")
+      .select("id, empresa_id, numero, estado, ubicacion_origen_id, ubicacion_destino_id, destino_tipo, destino_nombre, destino_ciudad")
       .eq("empresa_id", auth.empresa_id)
       .eq("id", id)
       .maybeSingle();
     if (nrQ.error) throw new Error(nrQ.error.message);
     if (!nrQ.data) return NextResponse.json(errorResponse(API_ERRORS.NOT_FOUND), { status: 404 });
-    const nr = nrQ.data as { id: string; numero: string; estado: string; ubicacion_origen_id: string; ubicacion_destino_id: string };
+    const nr = nrQ.data as { id: string; numero: string; estado: string; ubicacion_origen_id: string; ubicacion_destino_id: string | null; destino_tipo?: string | null };
+    // Destino externo (cliente): la mercadería sale del depósito y no entra a otro.
+    const esDestinoCliente = (nr.destino_tipo ?? "deposito") === "cliente";
     if (nr.estado !== "pendiente") {
       return NextResponse.json(errorResponse(`NR ya está ${nr.estado}, no se puede aprobar.`), { status: 409 });
     }
-    if (nr.ubicacion_origen_id === nr.ubicacion_destino_id) {
+    if (!esDestinoCliente && nr.ubicacion_origen_id === nr.ubicacion_destino_id) {
       return NextResponse.json(errorResponse("Origen y destino no pueden ser el mismo depósito."), { status: 400 });
     }
 
@@ -126,9 +128,11 @@ export async function POST(
       const e1 = await ajustarStock(supabase, auth.empresa_id, nr.ubicacion_origen_id, it.producto_id, -cant);
       if (e1) { errores.push(`SALIDA ${it.producto_id}: ${e1}`); break; }
       aplicados.push({ producto_id: it.producto_id, ubicacion_id: nr.ubicacion_origen_id, delta: -cant });
-      const e2 = await ajustarStock(supabase, auth.empresa_id, nr.ubicacion_destino_id, it.producto_id, cant);
-      if (e2) { errores.push(`ENTRADA ${it.producto_id}: ${e2}`); break; }
-      aplicados.push({ producto_id: it.producto_id, ubicacion_id: nr.ubicacion_destino_id, delta: cant });
+      if (!esDestinoCliente && nr.ubicacion_destino_id) {
+        const e2 = await ajustarStock(supabase, auth.empresa_id, nr.ubicacion_destino_id, it.producto_id, cant);
+        if (e2) { errores.push(`ENTRADA ${it.producto_id}: ${e2}`); break; }
+        aplicados.push({ producto_id: it.producto_id, ubicacion_id: nr.ubicacion_destino_id, delta: cant });
+      }
 
       const info = prodInfo.get(it.producto_id);
       const movs = [
@@ -147,7 +151,10 @@ export async function POST(
           created_by: auth.usuarioCatalogId ?? auth.user?.id ?? null,
           usuario_nombre: aprobador,
         },
-        {
+      ];
+      // A un cliente la mercadería sale y no vuelve a otro depósito: solo SALIDA.
+      if (!esDestinoCliente && nr.ubicacion_destino_id) {
+        movs.push({
           empresa_id: auth.empresa_id,
           producto_id: it.producto_id,
           producto_nombre: info?.nombre ?? "?",
@@ -161,8 +168,8 @@ export async function POST(
           ubicacion_id: nr.ubicacion_destino_id,
           created_by: auth.usuarioCatalogId ?? auth.user?.id ?? null,
           usuario_nombre: aprobador,
-        },
-      ];
+        });
+      }
       const movIns = await supabase.from("movimientos_inventario").insert(movs);
       if (movIns.error) {
         // Log warning pero no bloquear si es CHECK constraint

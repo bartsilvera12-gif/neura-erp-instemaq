@@ -35,6 +35,12 @@ export default function HistorialNRPage() {
   useEffect(() => { cargar(); }, [cargar]);
 
   const nombreUbic = (id: string) => depositos.find((d) => d.id === id)?.nombre ?? "—";
+  /** Destino legible: depósito propio o cliente/dirección externa. */
+  const nombreDestino = (nr: NotaRemision) =>
+    nr.destino_tipo === "cliente"
+      ? [nr.destino_nombre, nr.destino_ciudad].filter(Boolean).join(" · ") || "Cliente"
+      : nombreUbic(nr.ubicacion_destino_id ?? "");
+
 
   const stats = useMemo(() => ({
     pendientes: nrs.filter((n) => n.estado === "pendiente").length,
@@ -138,7 +144,7 @@ export default function HistorialNRPage() {
                     <td className="px-5 py-3 font-mono text-xs font-semibold text-slate-700">{nr.numero}</td>
                     <td className="px-5 py-3 text-xs tabular-nums text-slate-600">{fmtFecha(nr.fecha)}</td>
                     <td className="px-5 py-3 text-xs text-slate-700">
-                      {nombreUbic(nr.ubicacion_origen_id)} <span className="text-slate-400">→</span> <strong>{nombreUbic(nr.ubicacion_destino_id)}</strong>
+                      {nombreUbic(nr.ubicacion_origen_id)} <span className="text-slate-400">→</span> <strong>{nombreDestino(nr)}</strong>
                     </td>
                     <td className="px-5 py-3 text-xs text-slate-700">{nr.emisor}</td>
                     <td className="px-5 py-3 text-right tabular-nums text-xs">{(nr.items ?? []).length}</td>

@@ -36,7 +36,13 @@ export type NotaRemision = {
   fecha: string;
   emisor: string;
   ubicacion_origen_id: string;
-  ubicacion_destino_id: string;
+  /** Null cuando el destino es un cliente / dirección externa. */
+  ubicacion_destino_id: string | null;
+  destino_tipo?: "deposito" | "cliente";
+  cliente_id?: string | null;
+  destino_nombre?: string | null;
+  destino_direccion?: string | null;
+  destino_ciudad?: string | null;
   motivo: "traslado" | "venta" | "devolucion";
   estado: NotaRemisionEstado;
   motivo_rechazo: string | null;
@@ -107,6 +113,11 @@ export async function crearNR(payload: {
   emisor: string;
   ubicacion_origen_id: string;
   ubicacion_destino_id: string;
+  destino_tipo?: "deposito" | "cliente";
+  cliente_id?: string;
+  destino_nombre?: string;
+  destino_direccion?: string;
+  destino_ciudad?: string;
   motivo: "traslado" | "venta" | "devolucion";
   items: Array<{ producto_id: string; cantidad: number }>;
   transportista?: string;

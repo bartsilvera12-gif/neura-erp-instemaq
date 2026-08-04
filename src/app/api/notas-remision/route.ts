@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 
 const COLS =
-  "id, empresa_id, numero, fecha, emisor, ubicacion_origen_id, ubicacion_destino_id, motivo, estado, motivo_rechazo, aprobada_at, aprobada_por, transportista, ruc_transportista, conductor, ci_conductor, chapa, fecha_inicio_traslado, fecha_fin_traslado, observaciones, created_at, updated_at";
+  "id, empresa_id, numero, fecha, emisor, ubicacion_origen_id, ubicacion_destino_id, motivo, estado, motivo_rechazo, aprobada_at, aprobada_por, transportista, ruc_transportista, conductor, ci_conductor, chapa, fecha_inicio_traslado, fecha_fin_traslado, observaciones, created_at, updated_at, destino_tipo, cliente_id, destino_nombre, destino_direccion, destino_ciudad";
 
 type ItemIn = { producto_id: string; cantidad: number };
 
@@ -86,26 +86,48 @@ export async function POST(request: NextRequest) {
       fecha_inicio_traslado?: string;
       fecha_fin_traslado?: string;
       observaciones?: string;
+      /** Destino externo: envío a la dirección de un cliente en vez de otro depósito. */
+      destino_tipo?: "deposito" | "cliente";
+      cliente_id?: string;
+      destino_nombre?: string;
+      destino_direccion?: string;
+      destino_ciudad?: string;
     };
 
     const emisor = String(body.emisor ?? "").trim();
     const origenId = String(body.ubicacion_origen_id ?? "").trim();
     const destinoId = String(body.ubicacion_destino_id ?? "").trim();
+    const destinoTipo = String(body.destino_tipo ?? "deposito") === "cliente" ? "cliente" : "deposito";
+    const destinoNombre = String(body.destino_nombre ?? "").trim();
+    const clienteId = String(body.cliente_id ?? "").trim();
     const motivo = ["traslado", "venta", "devolucion"].includes(String(body.motivo)) ? body.motivo! : "traslado";
     if (!emisor) return NextResponse.json(errorResponse("Emisor obligatorio."), { status: 400 });
-    if (!origenId || !destinoId) return NextResponse.json(errorResponse("Origen y destino obligatorios."), { status: 400 });
-    if (origenId === destinoId) return NextResponse.json(errorResponse("Origen y destino no pueden ser iguales."), { status: 400 });
+    if (!origenId) return NextResponse.json(errorResponse("Depósito de origen obligatorio."), { status: 400 });
+    if (destinoTipo === "deposito") {
+      if (!destinoId) return NextResponse.json(errorResponse("Depósito de destino obligatorio."), { status: 400 });
+      if (origenId === destinoId) {
+        return NextResponse.json(errorResponse("Origen y destino no pueden ser iguales."), { status: 400 });
+      }
+    } else if (!clienteId && !destinoNombre) {
+      return NextResponse.json(
+        errorResponse("Indicá el cliente o el nombre de destino del envío."),
+        { status: 400 }
+      );
+    }
     const items = (body.items ?? []).filter((i) => i && i.producto_id && Number(i.cantidad) > 0);
     if (items.length === 0) return NextResponse.json(errorResponse("Cargá al menos 1 producto con cantidad > 0."), { status: 400 });
 
-    // Validar ubicaciones
+    // Validar ubicaciones: el origen siempre; el destino solo si es un depósito.
+    const ubicacionesAValidar = destinoTipo === "deposito" ? [origenId, destinoId] : [origenId];
     const ubQ = await supabase
       .from("inventario_ubicaciones")
       .select("id")
       .eq("empresa_id", auth.empresa_id)
-      .in("id", [origenId, destinoId]);
+      .in("id", ubicacionesAValidar);
     if (ubQ.error) throw new Error(ubQ.error.message);
-    if ((ubQ.data ?? []).length !== 2) return NextResponse.json(errorResponse("Ubicación inválida."), { status: 400 });
+    if ((ubQ.data ?? []).length !== ubicacionesAValidar.length) {
+      return NextResponse.json(errorResponse("Ubicación inválida."), { status: 400 });
+    }
 
     // Validar stock disponible en origen
     const productoIds = Array.from(new Set(items.map((i) => i.producto_id)));
@@ -150,7 +172,12 @@ export async function POST(request: NextRequest) {
         numero,
         emisor,
         ubicacion_origen_id: origenId,
-        ubicacion_destino_id: destinoId,
+        ubicacion_destino_id: destinoTipo === "deposito" ? destinoId : null,
+        destino_tipo: destinoTipo,
+        cliente_id: destinoTipo === "cliente" && clienteId ? clienteId : null,
+        destino_nombre: destinoTipo === "cliente" ? destinoNombre || null : null,
+        destino_direccion: destinoTipo === "cliente" ? String(body.destino_direccion ?? "").trim() || null : null,
+        destino_ciudad: destinoTipo === "cliente" ? String(body.destino_ciudad ?? "").trim() || null : null,
         motivo,
         estado: "pendiente",
         transportista: body.transportista?.trim() || null,

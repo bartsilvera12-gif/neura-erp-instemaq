@@ -14,6 +14,11 @@ export default function EmitirNRPage() {
   const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [origen, setOrigen] = useState("");
   const [destino, setDestino] = useState("");
+  /** Destino externo: envío a la dirección de un cliente (no a otro depósito). */
+  const [destinoTipo, setDestinoTipo] = useState<"deposito" | "cliente">("deposito");
+  const [destNombre, setDestNombre] = useState("");
+  const [destDireccion, setDestDireccion] = useState("");
+  const [destCiudad, setDestCiudad] = useState("");
   const [stockOrigen, setStockOrigen] = useState<StockItem[]>([]);
   const [motivo, setMotivo] = useState<"traslado" | "venta" | "devolucion">("traslado");
   const [emisor, setEmisor] = useState("");
@@ -69,7 +74,8 @@ export default function EmitirNRPage() {
 
   async function emitir() {
     setError(null);
-    if (origen === destino) { setError("Origen y destino no pueden ser iguales."); return; }
+    if (destinoTipo === "deposito" && origen === destino) { setError("Origen y destino no pueden ser iguales."); return; }
+    if (destinoTipo === "cliente" && !destNombre.trim()) { setError("Indicá a quién se envía la mercadería."); return; }
     if (!emisor.trim()) { setError("Emisor obligatorio."); return; }
     const items = productosAgregados
       .map((pid) => ({ producto_id: pid, cantidad: Number(cantidades[pid] ?? 0) }))
@@ -79,7 +85,11 @@ export default function EmitirNRPage() {
     const r = await crearNR({
       emisor: emisor.trim(),
       ubicacion_origen_id: origen,
-      ubicacion_destino_id: destino,
+      ubicacion_destino_id: destinoTipo === "deposito" ? destino : "",
+      destino_tipo: destinoTipo,
+      destino_nombre: destinoTipo === "cliente" ? destNombre.trim() : undefined,
+      destino_direccion: destinoTipo === "cliente" ? destDireccion.trim() : undefined,
+      destino_ciudad: destinoTipo === "cliente" ? destCiudad.trim() : undefined,
       motivo,
       items,
       transportista: transportista.trim() || undefined,
@@ -96,7 +106,7 @@ export default function EmitirNRPage() {
     setCreada({
       id: r.data.nota_remision.id,
       numero: r.data.nota_remision.numero,
-      destinoNombre: nombreUbic(destino),
+      destinoNombre: destinoTipo === "cliente" ? destNombre.trim() : nombreUbic(destino),
     });
   }
 
@@ -147,11 +157,23 @@ export default function EmitirNRPage() {
               {depositos.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
             </select>
           </Field>
-          <Field label="Depósito Destino *">
-            <select value={destino} onChange={(e) => setDestino(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-              {depositos.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+          <Field label="Enviar a *">
+            <select value={destinoTipo} onChange={(e) => setDestinoTipo(e.target.value as "deposito" | "cliente")} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
+              <option value="deposito">Otro depósito</option>
+              <option value="cliente">Cliente / dirección</option>
             </select>
           </Field>
+          {destinoTipo === "deposito" ? (
+            <Field label="Depósito Destino *">
+              <select value={destino} onChange={(e) => setDestino(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
+                {depositos.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+              </select>
+            </Field>
+          ) : (
+            <Field label="Destinatario *">
+              <input type="text" value={destNombre} onChange={(e) => setDestNombre(e.target.value)} placeholder="Nombre del cliente" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </Field>
+          )}
           <Field label="Motivo">
             <select value={motivo} onChange={(e) => setMotivo(e.target.value as typeof motivo)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
               <option value="traslado">Traslado</option>
@@ -163,6 +185,21 @@ export default function EmitirNRPage() {
             <input type="text" value={emisor} onChange={(e) => setEmisor(e.target.value)} placeholder="Ej: Marcial (Central)" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           </Field>
         </div>
+
+        {destinoTipo === "cliente" && (
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-[#4FAEB2]/30 bg-[#4FAEB2]/[0.05] p-4 sm:grid-cols-2">
+            <Field label="Dirección de entrega">
+              <input type="text" value={destDireccion} onChange={(e) => setDestDireccion(e.target.value)} placeholder="Ej: Av. Monseñor Rodríguez 1234" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </Field>
+            <Field label="Ciudad / zona">
+              <input type="text" value={destCiudad} onChange={(e) => setDestCiudad(e.target.value)} placeholder="Ej: Ciudad del Este / Km 9" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </Field>
+            <p className="text-xs text-slate-500 sm:col-span-2">
+              La mercadería sale del depósito de origen y no ingresa a otro: queda en poder del cliente.
+              La factura se emite después, cuando corresponda.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">

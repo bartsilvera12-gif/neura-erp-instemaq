@@ -36,6 +36,12 @@ export default function RecepcionNRPage() {
   }, [cargarPendientes]);
 
   const nombreUbic = (id: string) => depositos.find((d) => d.id === id)?.nombre ?? "—";
+  /** Destino legible: depósito propio o cliente/dirección externa. */
+  const nombreDestino = (nr: NotaRemision) =>
+    nr.destino_tipo === "cliente"
+      ? [nr.destino_nombre, nr.destino_ciudad].filter(Boolean).join(" · ") || "Cliente"
+      : nombreUbic(nr.ubicacion_destino_id ?? "");
+
 
   async function buscar() {
     setError(null); setFeedback(null);
@@ -76,7 +82,7 @@ export default function RecepcionNRPage() {
     const r = await aprobarNR(nr.id, aprobador.trim());
     setProcesando(false);
     if (!r.ok) { setError(r.error); return; }
-    setFeedback(`✓ NR ${nr.numero} recibida. Stock transferido a ${nombreUbic(nr.ubicacion_destino_id)}.`);
+    setFeedback(`✓ NR ${nr.numero} recibida. ${nr.destino_tipo === "cliente" ? `Mercadería entregada a ${nombreDestino(nr)}` : `Stock transferido a ${nombreDestino(nr)}`}.`);
     const det = await fetchNR(nr.id);
     if (det.ok) setNr(det.data.nota_remision);
     await cargarPendientes();
@@ -155,7 +161,7 @@ export default function RecepcionNRPage() {
                   onClick={() => tomarPendiente(p.id)}
                   className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
                 >
-                  {p.numero} — {nombreUbic(p.ubicacion_origen_id)} → {nombreUbic(p.ubicacion_destino_id)}
+                  {p.numero} — {nombreUbic(p.ubicacion_origen_id)} → {nombreDestino(p)}
                 </button>
               ))}
             </div>
@@ -169,7 +175,7 @@ export default function RecepcionNRPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-800">NR {nr.numero}</h2>
               <p className="mt-0.5 text-xs text-slate-500">
-                {nr.origen?.nombre ?? nombreUbic(nr.ubicacion_origen_id)} → <strong>{nr.destino?.nombre ?? nombreUbic(nr.ubicacion_destino_id)}</strong> · Emitida {fmtFecha(nr.fecha)} · Motivo: {nr.motivo}
+                {nr.origen?.nombre ?? nombreUbic(nr.ubicacion_origen_id)} → <strong>{nr.destino?.nombre ?? nombreDestino(nr)}</strong> · Emitida {fmtFecha(nr.fecha)} · Motivo: {nr.motivo}
               </p>
             </div>
             <EstadoBadge estado={nr.estado} />
