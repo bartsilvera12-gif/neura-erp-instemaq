@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Truck, Send } from "lucide-react";
+import { FancySelect } from "@/components/ui/FancySelect";
+import CrearClienteModal, { type ClienteCreado } from "@/components/clientes/CrearClienteModal";
 import { fetchDepositos, fetchStockDeposito, crearNR, type Deposito, type StockItem } from "@/lib/multideposito/client";
 
 function fmt(n: number) { return n.toLocaleString("es-PY"); }
@@ -17,6 +19,11 @@ export default function EmitirNRPage() {
   /** Destino externo: envío a la dirección de un cliente (no a otro depósito). */
   const [destinoTipo, setDestinoTipo] = useState<"deposito" | "cliente">("deposito");
   const [destNombre, setDestNombre] = useState("");
+  /** Cartera de clientes para elegir el destinatario del envío. */
+  type ClienteLite = { id: string; label: string; ruc: string | null; direccion: string; ciudad: string };
+  const [clientes, setClientes] = useState<ClienteLite[]>([]);
+  const [clienteId, setClienteId] = useState("");
+  const [modalClienteOpen, setModalClienteOpen] = useState(false);
   const [destDireccion, setDestDireccion] = useState("");
   const [destCiudad, setDestCiudad] = useState("");
   const [stockOrigen, setStockOrigen] = useState<StockItem[]>([]);
@@ -56,6 +63,36 @@ export default function EmitirNRPage() {
     })();
   }, []);
 
+  // Clientes (destinatarios posibles del envío externo).
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/clientes", { credentials: "include", cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled || !j?.success || !Array.isArray(j.data)) return;
+        const t = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+        setClientes(
+          (j.data as Record<string, unknown>[]).map((r) => ({
+            id: String(r.id),
+            label: t(r.empresa) || t(r.nombre_contacto) || t(r.nombre) || "Cliente",
+            ruc: t(r.ruc) || null,
+            direccion: t(r.direccion),
+            ciudad: t(r.ciudad),
+          }))
+        );
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  /** Alta rápida: el cliente recién creado queda seleccionado al instante. */
+  function onClienteCreado(c: ClienteCreado) {
+    setClientes((prev) => [{ id: c.id, label: c.label, ruc: c.ruc, direccion: "", ciudad: "" }, ...prev]);
+    setClienteId(c.id);
+    setDestNombre(c.label);
+    setModalClienteOpen(false);
+  }
+
   const cargarStock = useCallback(async (ubicacionId: string) => {
     if (!ubicacionId) return;
     const r = await fetchStockDeposito(ubicacionId, { soloConStock: true });
@@ -87,6 +124,7 @@ export default function EmitirNRPage() {
       ubicacion_origen_id: origen,
       ubicacion_destino_id: destinoTipo === "deposito" ? destino : "",
       destino_tipo: destinoTipo,
+      cliente_id: destinoTipo === "cliente" && clienteId ? clienteId : undefined,
       destino_nombre: destinoTipo === "cliente" ? destNombre.trim() : undefined,
       destino_direccion: destinoTipo === "cliente" ? destDireccion.trim() : undefined,
       destino_ciudad: destinoTipo === "cliente" ? destCiudad.trim() : undefined,
@@ -144,42 +182,86 @@ export default function EmitirNRPage() {
           </span>
           Emitir Nota de Remisión
         </h1>
-        <p className="mt-1 text-sm text-slate-500">Traslado de mercadería entre depósitos. Queda pendiente hasta que el destino confirme.</p>
+        <p className="mt-1 text-sm text-slate-500">Traslado de mercadería a otro depósito o a la dirección de un cliente. Queda pendiente hasta confirmar la recepción.</p>
       </div>
 
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+
+      {modalClienteOpen && (
+        <CrearClienteModal onClose={() => setModalClienteOpen(false)} onCreated={onClienteCreado} />
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-sm font-semibold text-slate-800">Datos generales</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Field label="Depósito Origen *">
-            <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-              {depositos.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-            </select>
+            <FancySelect
+              ariaLabel="Depósito de origen"
+              value={origen}
+              onChange={(v) => {
+                setOrigen(v);
+                if (v === destino) {
+                  setDestino(depositos.find((d) => d.id !== v)?.id ?? "");
+                }
+              }}
+              options={depositos.map((u) => ({ value: u.id, label: u.nombre }))}
+            />
           </Field>
           <Field label="Enviar a *">
-            <select value={destinoTipo} onChange={(e) => setDestinoTipo(e.target.value as "deposito" | "cliente")} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-              <option value="deposito">Otro depósito</option>
-              <option value="cliente">Cliente / dirección</option>
-            </select>
+            <FancySelect
+              ariaLabel="Tipo de destino"
+              value={destinoTipo}
+              onChange={(v) => setDestinoTipo(v as "deposito" | "cliente")}
+              options={[
+                { value: "deposito", label: "Otro depósito", description: "Traslado entre depósitos propios" },
+                { value: "cliente", label: "Cliente / dirección", description: "Envío externo, se factura después" },
+              ]}
+            />
           </Field>
           {destinoTipo === "deposito" ? (
             <Field label="Depósito Destino *">
-              <select value={destino} onChange={(e) => setDestino(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-                {depositos.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-              </select>
+              <FancySelect
+                ariaLabel="Depósito de destino"
+                value={destino}
+                onChange={setDestino}
+                options={depositos
+                  .filter((u) => u.id !== origen)
+                  .map((u) => ({ value: u.id, label: u.nombre }))}
+              />
             </Field>
           ) : (
             <Field label="Destinatario *">
-              <input type="text" value={destNombre} onChange={(e) => setDestNombre(e.target.value)} placeholder="Nombre del cliente" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <FancySelect
+                ariaLabel="Cliente destinatario"
+                value={clienteId}
+                placeholder="Elegí un cliente…"
+                onChange={(v) => {
+                  if (v === "__nuevo__") { setModalClienteOpen(true); return; }
+                  setClienteId(v);
+                  const cli = clientes.find((c) => c.id === v);
+                  setDestNombre(cli?.label ?? "");
+                  // Precargamos la dirección de la ficha; el usuario puede ajustarla.
+                  if (cli?.direccion) setDestDireccion(cli.direccion);
+                  if (cli?.ciudad) setDestCiudad(cli.ciudad);
+                }}
+                options={[
+                  { value: "__nuevo__", label: "＋ Crear cliente nuevo", description: "Se selecciona automáticamente al guardar" },
+                  ...clientes.map((c) => ({ value: c.id, label: c.label, description: c.ruc ?? undefined })),
+                ]}
+              />
             </Field>
           )}
           <Field label="Motivo">
-            <select value={motivo} onChange={(e) => setMotivo(e.target.value as typeof motivo)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white">
-              <option value="traslado">Traslado</option>
-              <option value="venta">Venta</option>
-              <option value="devolucion">Devolución</option>
-            </select>
+            <FancySelect
+              ariaLabel="Motivo de la remisión"
+              value={motivo}
+              onChange={(v) => setMotivo(v as typeof motivo)}
+              options={[
+                { value: "traslado", label: "Traslado" },
+                { value: "venta", label: "Venta" },
+                { value: "devolucion", label: "Devolución" },
+              ]}
+            />
           </Field>
           <Field label="Emisor *">
             <input type="text" value={emisor} onChange={(e) => setEmisor(e.target.value)} placeholder="Ej: Marcial (Central)" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
