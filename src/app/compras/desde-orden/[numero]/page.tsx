@@ -10,6 +10,7 @@ import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session"
 import type { OrdenCompra } from "@/lib/ordenes-compra/types";
 import { parseCantidad, pasoCantidad, permiteDecimales } from "@/lib/productos/unidades";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { FancySelect } from "@/components/ui/FancySelect";
 
 function fmtGs(v: number) {
   return `Gs. ${Math.round(v || 0).toLocaleString("es-PY")}`;
@@ -358,10 +359,15 @@ export default function DesdeOrdenRecepcionPage() {
           </div>
           <div>
             <label className={labelClass}>Tipo de pago</label>
-            <select value={tipoPago} onChange={(e) => setTipoPago(e.target.value as "contado" | "credito")} className={`${inputClass} bg-white`}>
-              <option value="contado">Contado</option>
-              <option value="credito">Crédito</option>
-            </select>
+            <FancySelect
+              ariaLabel="Tipo de pago"
+              value={tipoPago}
+              onChange={(v) => setTipoPago(v as "contado" | "credito")}
+              options={[
+                { value: "contado", label: "Contado" },
+                { value: "credito", label: "Crédito", description: "Se pide el plazo en días" },
+              ]}
+            />
           </div>
           {tipoPago === "credito" && (
             <div>

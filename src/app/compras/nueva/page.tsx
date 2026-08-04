@@ -13,6 +13,7 @@ import type { MetodoValuacion } from "@/lib/inventario/types";
 import ProductoBuscadorInline from "@/components/inventario/ProductoBuscadorInline";
 import { productoMatchesQuery } from "@/lib/productos/token-search";
 import { parseCantidad, pasoCantidad, permiteDecimales } from "@/lib/productos/unidades";
+import { FancySelect } from "@/components/ui/FancySelect";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -575,13 +576,17 @@ export default function NuevaCompraPage() {
                     </div>
                     <div>
                       <label className={labelSmClass}>Unidad de medida</label>
-                      <select name="unidad_medida" value={formProducto.unidad_medida} onChange={handleProductoInputChange} className={inputSmClass}>
-                        <option value="Unidad">Unidad</option>
-                        <option value="Kg">Kg</option>
-                        <option value="G">G</option>
-                        <option value="Litro">Litro</option>
-                        <option value="Caja">Caja</option>
-                      </select>
+                      <FancySelect
+                        ariaLabel="Unidad de medida"
+                        size="sm"
+                        value={formProducto.unidad_medida}
+                        onChange={(v) =>
+                          handleProductoInputChange({
+                            target: { name: "unidad_medida", value: v },
+                          } as React.ChangeEvent<HTMLInputElement>)
+                        }
+                        options={["Unidad", "Kg", "G", "Litro", "Caja"].map((u) => ({ value: u, label: u }))}
+                      />
                     </div>
                     <div>
                       <label className={labelSmClass}>Stock mínimo</label>
@@ -663,13 +668,17 @@ export default function NuevaCompraPage() {
                           )}
                         </td>
                         <td className="py-2 px-3">
-                          <select value={l.iva_tipo}
-                            onChange={(e) => editarLinea(i, { iva_tipo: e.target.value as TipoIva })}
-                            className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20 bg-white">
-                            <option value="exenta">Exenta</option>
-                            <option value="5">IVA 5%</option>
-                            <option value="10">IVA 10%</option>
-                          </select>
+                          <FancySelect
+                            ariaLabel="Tipo de IVA"
+                            size="sm"
+                            value={l.iva_tipo}
+                            onChange={(v) => editarLinea(i, { iva_tipo: v as TipoIva })}
+                            options={[
+                              { value: "exenta", label: "Exenta" },
+                              { value: "5", label: "IVA 5%" },
+                              { value: "10", label: "IVA 10%" },
+                            ]}
+                          />
                         </td>
                         <td className="py-2 px-3">
                           <MontoInput value={l.precio_venta}

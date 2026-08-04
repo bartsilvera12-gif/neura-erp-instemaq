@@ -10,6 +10,7 @@ import { uploadComprobante } from "@/lib/compras/storage";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import type { TipoIva, TipoPago, Moneda } from "@/lib/compras/types";
 import { parseCantidad, pasoCantidad, minimoCantidad, clampCantidad, permiteDecimales } from "@/lib/productos/unidades";
+import { FancySelect } from "@/components/ui/FancySelect";
 
 /** Miniatura con fallback si no hay imagen o falla. */
 function ProductoThumb({ url, alt }: { url?: string | null; alt: string }) {
@@ -301,10 +302,15 @@ export default function NuevaOrdenCompraPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Moneda</label>
-              <select value={cab.moneda} onChange={(e) => setCab((p) => ({ ...p, moneda: e.target.value as Moneda }))} className={inputClass}>
-                <option value="PYG">Guaraníes (PYG)</option>
-                <option value="USD">Dólares (USD)</option>
-              </select>
+              <FancySelect
+                ariaLabel="Moneda"
+                value={cab.moneda}
+                onChange={(v) => setCab((p) => ({ ...p, moneda: v as Moneda }))}
+                options={[
+                  { value: "PYG", label: "Guaraníes (PYG)" },
+                  { value: "USD", label: "Dólares (USD)" },
+                ]}
+              />
             </div>
             {cab.moneda === "USD" && (
               <div>
@@ -314,10 +320,15 @@ export default function NuevaOrdenCompraPage() {
             )}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Tipo de pago</label>
-              <select value={cab.tipo_pago} onChange={(e) => setCab((p) => ({ ...p, tipo_pago: e.target.value as TipoPago }))} className={inputClass}>
-                <option value="contado">Contado</option>
-                <option value="credito">Crédito</option>
-              </select>
+              <FancySelect
+                ariaLabel="Tipo de pago"
+                value={cab.tipo_pago}
+                onChange={(v) => setCab((p) => ({ ...p, tipo_pago: v as TipoPago }))}
+                options={[
+                  { value: "contado", label: "Contado" },
+                  { value: "credito", label: "Crédito", description: "Se pide el plazo en días" },
+                ]}
+              />
             </div>
             {cab.tipo_pago === "credito" && (
               <div>

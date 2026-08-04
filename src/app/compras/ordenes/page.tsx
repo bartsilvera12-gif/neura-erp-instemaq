@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getOrdenesCompra } from "@/lib/ordenes-compra/storage";
 import { productoMatchesQuery } from "@/lib/productos/token-search";
 import type { OrdenCompra, EstadoOrdenCompra } from "@/lib/ordenes-compra/types";
+import { FancySelect } from "@/components/ui/FancySelect";
 
 function fmtGs(v: number) {
   return `Gs. ${Math.round(v).toLocaleString("es-PY")}`;
@@ -114,14 +115,20 @@ export default function OrdenesCompraPage() {
           <input type="text" placeholder="Buscar por N° OC o proveedor…"
             value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
             className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4FAEB2]/30 sm:min-w-72" />
-          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value as EstadoOrdenCompra | "")}
-            className="w-44 rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-[#4FAEB2]/30">
-            <option value="">Todos los estados</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="recibida_parcial">Recibidas parcial</option>
-            <option value="recibida_total">Recibidas total</option>
-            <option value="cancelada">Canceladas</option>
-          </select>
+          <div className="w-52">
+            <FancySelect
+              ariaLabel="Filtrar por estado"
+              value={filtroEstado}
+              onChange={(v) => setFiltroEstado(v as EstadoOrdenCompra | "")}
+              options={[
+                { value: "", label: "Todos los estados" },
+                { value: "pendiente", label: "Pendientes" },
+                { value: "recibida_parcial", label: "Recibidas parcial" },
+                { value: "recibida_total", label: "Recibidas total" },
+                { value: "cancelada", label: "Canceladas" },
+              ]}
+            />
+          </div>
           <span className="ml-auto text-sm text-slate-400">{filtrados.length} de {grupos.length} órdenes</span>
         </div>
 
