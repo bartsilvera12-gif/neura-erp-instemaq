@@ -102,9 +102,6 @@ const MENU_STRUCTURE: MenuItem[] = [
   ]},
   { key: "clientes", slug: "clientes", label: "Clientes", href: "/clientes", icon: Users },
   { key: "gestion-clientes", slug: "gestion-clientes", label: "Gestión Clientes", href: "/gestion-clientes", icon: Users },
-  // Cobros: cuentas por cobrar y registro de cobros. La página vive en /pagos;
-  // el slug es `cobros` (módulo habilitado para la empresa).
-  { key: "cobros", slug: "cobros", label: "Cobros", href: "/pagos", icon: Banknote },
   {
     key: "compras",
     slug: "compras",
@@ -151,7 +148,7 @@ const MENU_STRUCTURE: MenuItem[] = [
 const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "gestion-clientes", "ventas", "presupuestos"] },
-  { id: "finanzas", titulo: "Finanzas", keys: ["cobros", "recibos", "gastos", "notas_credito"] },
+  { id: "finanzas", titulo: "Finanzas", keys: ["recibos", "gastos", "notas_credito"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision", "recepcion"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
   { id: "administracion", titulo: "Administración", keys: ["usuarios", "configuracion"] },

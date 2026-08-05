@@ -22,7 +22,6 @@ import { getUsuariosActivosEmpresa, type UsuarioEmpresa } from "@/lib/usuarios/e
 import MontoInput from "@/components/ui/MontoInput";
 import { getPlanes } from "@/lib/planes/storage";
 import type { Cliente, TipoCliente, OrigenCliente } from "@/lib/clientes/types";
-import { ClienteDatosSifenReceptorForm } from "@/components/clientes/ClienteDatosSifenReceptorForm";
 import type { ClienteTipoServicioRow } from "@/lib/clientes/tipo-servicio-catalogo";
 import { filasTiposDesdeSistemaEstatico, fetchTiposFormCliente } from "@/lib/clientes/fetch-tipos-servicio-form";
 import type { Plan } from "@/lib/planes/types";
@@ -414,27 +413,6 @@ function NuevoClienteForm() {
           <section className="space-y-4">
             <SectionTitle>Identificación</SectionTitle>
 
-            {/* Tipo de cliente */}
-            <div>
-              <label className={labelClass}>Tipo de cliente</label>
-              <div className="flex rounded-lg border border-slate-200 overflow-hidden w-fit">
-                {(["empresa", "persona"] as TipoCliente[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, tipo_cliente: t }))}
-                    className={`px-5 py-2.5 text-sm font-medium transition-colors ${
-                      form.tipo_cliente === t
-                        ? "bg-[#0EA5E9] text-white"
-                        : "bg-white text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {t === "empresa" ? "Empresa" : "Persona"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {form.tipo_cliente === "empresa" && (
               <div>
                 <label className={labelClass}>
@@ -601,72 +579,7 @@ function NuevoClienteForm() {
               </div>
             </div>
 
-            <ClienteDatosSifenReceptorForm
-              value={{
-                sifen_receptor_manual: form.sifen_receptor_manual,
-                sifen_receptor_naturaleza: (form.sifen_receptor_naturaleza || null) as Cliente["sifen_receptor_naturaleza"],
-                sifen_ti_ope: form.sifen_ti_ope.trim() ? parseInt(form.sifen_ti_ope, 10) : null,
-                sifen_tipo_doc_receptor: form.sifen_tipo_doc.trim() ? parseInt(form.sifen_tipo_doc, 10) : null,
-                sifen_codigo_pais: form.sifen_codigo_pais.trim() || null,
-                sifen_num_id_de: form.sifen_num_id_de.trim() || null,
-                sifen_direccion_de: form.sifen_direccion_de.trim() || null,
-                sifen_num_casa_de:
-                  form.sifen_num_casa_de.trim() === "" ? null : Math.max(0, parseInt(form.sifen_num_casa_de, 10) || 0),
-                sifen_descripcion_tipo_doc: form.sifen_descripcion_tipo_doc.trim() || null,
-              }}
-              onChange={(patch) => {
-                setForm((p) => {
-                  if (patch.sifen_receptor_manual === false) {
-                    return {
-                      ...p,
-                      sifen_receptor_manual: false,
-                      sifen_receptor_naturaleza: "",
-                      sifen_ti_ope: "",
-                      sifen_tipo_doc: "",
-                      sifen_num_id_de: "",
-                      sifen_codigo_pais: "",
-                      sifen_direccion_de: "",
-                      sifen_num_casa_de: "",
-                      sifen_descripcion_tipo_doc: "",
-                    };
-                  }
-                  return {
-                    ...p,
-                    ...(patch.sifen_receptor_manual !== undefined
-                      ? { sifen_receptor_manual: Boolean(patch.sifen_receptor_manual) }
-                      : {}),
-                    ...(patch.sifen_receptor_naturaleza !== undefined
-                      ? { sifen_receptor_naturaleza: patch.sifen_receptor_naturaleza ?? "" }
-                      : {}),
-                    ...(patch.sifen_ti_ope !== undefined
-                      ? { sifen_ti_ope: patch.sifen_ti_ope != null ? String(patch.sifen_ti_ope) : "" }
-                      : {}),
-                    ...(patch.sifen_tipo_doc_receptor !== undefined
-                      ? {
-                          sifen_tipo_doc:
-                            patch.sifen_tipo_doc_receptor != null ? String(patch.sifen_tipo_doc_receptor) : "",
-                        }
-                      : {}),
-                    ...(patch.sifen_num_id_de !== undefined ? { sifen_num_id_de: patch.sifen_num_id_de ?? "" } : {}),
-                    ...(patch.sifen_codigo_pais !== undefined
-                      ? { sifen_codigo_pais: patch.sifen_codigo_pais ?? "" }
-                      : {}),
-                    ...(patch.sifen_direccion_de !== undefined
-                      ? { sifen_direccion_de: patch.sifen_direccion_de ?? "" }
-                      : {}),
-                    ...(patch.sifen_num_casa_de !== undefined
-                      ? {
-                          sifen_num_casa_de:
-                            patch.sifen_num_casa_de != null ? String(patch.sifen_num_casa_de) : "",
-                        }
-                      : {}),
-                    ...(patch.sifen_descripcion_tipo_doc !== undefined
-                      ? { sifen_descripcion_tipo_doc: patch.sifen_descripcion_tipo_doc ?? "" }
-                      : {}),
-                  };
-                });
-              }}
-            />
+
           </section>
 
           {/* ── Datos comerciales ────────────────────────────────────────── */}
@@ -761,32 +674,6 @@ function NuevoClienteForm() {
                 >
                   <option value="activo">Activo</option>
                   <option value="inactivo">Inactivo</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
-              <SectionTitle>Plan</SectionTitle>
-              <div>
-                <label className={labelClass}>Plan</label>
-                <select
-                  value={formSusc.plan_id}
-                  onChange={(e) => {
-                    const p = planes.find((x) => x.id === e.target.value);
-                    setFormSusc((prev) => ({
-                      ...prev,
-                      plan_id: e.target.value,
-                      precio: p ? String(p.precio) : prev.precio,
-                    }));
-                  }}
-                  className={inputClass}
-                >
-                  <option value="">— Seleccionar plan —</option>
-                  {planes.filter((p) => p.estado === "activo").map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} — {p.moneda} {p.precio.toLocaleString("es-PY")}
-                    </option>
-                  ))}
                 </select>
               </div>
             </div>
