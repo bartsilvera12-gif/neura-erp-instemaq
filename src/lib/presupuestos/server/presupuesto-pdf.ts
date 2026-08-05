@@ -99,12 +99,18 @@ function wrap(t: string, f: PDFFont, size: number, max: number): string[] {
   return lines;
 }
 
-function logoBytes(): Uint8Array | null {
-  try {
-    // Variante de marca con fondo azul (FERRETERÍA naranja, REPÚBLICA blanco).
-    const p = path.join(process.cwd(), "public", "brand", "ferreteriarepublica-presupuesto-logo.png");
-    if (fs.existsSync(p)) return new Uint8Array(fs.readFileSync(p));
-  } catch { /* sin logo */ }
+/** Logo de la instancia. Devuelve los bytes y el formato para embeberlo. */
+function logoBytes(): { bytes: Uint8Array; tipo: "png" | "jpg" } | null {
+  const candidatos: { archivo: string; tipo: "png" | "jpg" }[] = [
+    { archivo: "instemaq-logo.jpeg", tipo: "jpg" },
+    { archivo: "instemaq-logo.png", tipo: "png" },
+  ];
+  for (const c of candidatos) {
+    try {
+      const p = path.join(process.cwd(), "public", "brand", c.archivo);
+      if (fs.existsSync(p)) return { bytes: new Uint8Array(fs.readFileSync(p)), tipo: c.tipo };
+    } catch { /* probamos el siguiente */ }
+  }
   return null;
 }
 
@@ -169,7 +175,7 @@ export async function buildPresupuestoPdf(
   const reg = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const lb = logoBytes();
-  const logo = lb ? await doc.embedPng(lb) : null;
+  const logo = lb ? (lb.tipo === "jpg" ? await doc.embedJpg(lb.bytes) : await doc.embedPng(lb.bytes)) : null;
   const moneda = data.moneda === "USD" ? "USD" : "PYG";
 
   const c: Ctx = { doc, page: doc.addPage(A4), y: TOP, reg, bold, logo, emisor };
