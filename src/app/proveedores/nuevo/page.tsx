@@ -2,21 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ProveedorForm, { emptyProveedorForm, type ProveedorFormValues } from "@/app/proveedores/ProveedorForm";
-import { createProveedor, getCategoriasProveedor } from "@/lib/proveedores/storage";
-import type { ProveedorCategoria } from "@/lib/proveedores/types";
+import { createProveedor } from "@/lib/proveedores/storage";
 
 export default function NuevoProveedorPage() {
   const router = useRouter();
   const [form, setForm] = useState<ProveedorFormValues>(emptyProveedorForm);
-  const [categorias, setCategorias] = useState<ProveedorCategoria[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    getCategoriasProveedor({ todas: true }).then(setCategorias);
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,7 +36,6 @@ export default function NuevoProveedorPage() {
         form.plazo_pago_dias.trim() === "" ? null : parseInt(form.plazo_pago_dias, 10),
       moneda_preferida: form.moneda_preferida === "" ? null : form.moneda_preferida,
       observaciones: form.observaciones.trim() || null,
-      categoria_ids: form.categoria_ids,
     };
     const res = await createProveedor(payload);
     setSaving(false);
@@ -63,7 +57,7 @@ export default function NuevoProveedorPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-        <ProveedorForm values={form} onChange={setForm} categorias={categorias} disabled={saving} />
+        <ProveedorForm values={form} onChange={setForm} disabled={saving} />
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}

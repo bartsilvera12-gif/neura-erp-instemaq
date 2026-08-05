@@ -3,15 +3,11 @@ import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { fetchDataSchemaForEmpresaId } from "@/lib/supabase/empresa-data-schema";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
-import type { Proveedor, ProveedorCategoria } from "@/lib/proveedores/types";
+import type { Proveedor } from "@/lib/proveedores/types";
 import {
   listProveedores,
   insertProveedor,
   findProveedorByRuc,
-  listCategoriasMin,
-  listRelaciones,
-  replaceRelacionesProveedor,
-  deleteProveedor,
   type ProveedorRow,
 } from "@/lib/proveedores/server/proveedores-pg";
 import { normalizeUpperText, normalizeUpperNullable } from "@/lib/text/normalize";
@@ -53,26 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Serializado para no agotar pool (session mode max 15 conexiones).
     const provs = await listProveedores(schema, empresaId);
-    const cats = await listCategoriasMin(schema, empresaId);
-    const rels = await listRelaciones(schema, empresaId);
-
-    const catById = new Map<string, Pick<ProveedorCategoria, "id" | "nombre" | "activo">>();
-    for (const c of cats) catById.set(c.id, { id: c.id, nombre: c.nombre, activo: c.activo });
-
-    const catsByProveedor = new Map<string, Pick<ProveedorCategoria, "id" | "nombre" | "activo">[]>();
-    for (const rel of rels) {
-      const cat = catById.get(rel.categoria_id);
-      if (!cat) continue;
-      const list = catsByProveedor.get(rel.proveedor_id) ?? [];
-      list.push(cat);
-      catsByProveedor.set(rel.proveedor_id, list);
-    }
-
-    const proveedores: Proveedor[] = provs.map((row) => {
-      const p = mapProveedorRow(row);
-      p.categorias = catsByProveedor.get(p.id) ?? [];
-      return p;
-    });
+    const proveedores: Proveedor[] = provs.map(mapProveedorRow);
 
     return NextResponse.json(successResponse({ proveedores }));
   } catch (err) {
@@ -139,10 +116,6 @@ export async function POST(request: NextRequest) {
       ? (body.moneda_preferida as "USD" | "GS")
       : null;
 
-    const categoriaIds = Array.isArray(body.categoria_ids)
-      ? (body.categoria_ids as unknown[]).map((x) => String(x)).filter(Boolean)
-      : [];
-
     // Duplicado por RUC
     if (ruc) {
       try {
@@ -175,30 +148,7 @@ export async function POST(request: NextRequest) {
         observaciones,
       });
 
-      // Relaciones categorias (opcional)
-      if (categoriaIds.length > 0) {
-        try {
-          await replaceRelacionesProveedor(schema, empresaId, row.id, categoriaIds);
-        } catch (relErr) {
-          // Rollback manual: borrar proveedor recien creado.
-          await deleteProveedor(schema, empresaId, row.id).catch(() => null);
-          throw relErr;
-        }
-      }
-
-      // Cargar categorias para devolver al cliente.
-      let categorias: ProveedorCategoria[] = [];
-      if (categoriaIds.length > 0) {
-        const allCats = await listCategoriasMin(schema, empresaId);
-        const map = new Map(allCats.map((c) => [c.id, c]));
-        categorias = categoriaIds
-          .map((id) => map.get(id))
-          .filter((c): c is { id: string; nombre: string; activo: boolean } => !!c)
-          .map((c) => ({ id: c.id, nombre: c.nombre, descripcion: null, activo: c.activo }));
-      }
-
       const prov = mapProveedorRow(row);
-      prov.categorias = categorias.map((c) => ({ id: c.id, nombre: c.nombre, activo: c.activo }));
       return NextResponse.json(successResponse({ proveedor: prov }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";

@@ -3,14 +3,11 @@ import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { fetchDataSchemaForEmpresaId } from "@/lib/supabase/empresa-data-schema";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
-import type { Proveedor, ProveedorCategoria } from "@/lib/proveedores/types";
+import type { Proveedor } from "@/lib/proveedores/types";
 import {
   getProveedorById,
   updateProveedor,
-  listRelacionesDeProveedor,
-  replaceRelacionesProveedor,
   findProveedorByRuc,
-  listCategoriasMin,
   type ProveedorRow,
   type InsertProveedorInput,
 } from "@/lib/proveedores/server/proveedores-pg";
@@ -41,20 +38,6 @@ function mapProveedorRow(r: ProveedorRow): Proveedor {
   };
 }
 
-async function attachCategoriasInfo(
-  schema: string,
-  empresaId: string,
-  proveedorId: string
-): Promise<Pick<ProveedorCategoria, "id" | "nombre" | "activo">[]> {
-  const ids = await listRelacionesDeProveedor(schema, empresaId, proveedorId);
-  if (ids.length === 0) return [];
-  const cats = await listCategoriasMin(schema, empresaId);
-  const byId = new Map(cats.map((c) => [c.id, c]));
-  return ids
-    .map((cid) => byId.get(cid))
-    .filter((c): c is { id: string; nombre: string; activo: boolean } => !!c)
-    .map((c) => ({ id: c.id, nombre: c.nombre, activo: c.activo }));
-}
 
 export async function GET(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -68,7 +51,6 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ id: str
     if (!row) return NextResponse.json(errorResponse("Proveedor no encontrado."), { status: 404 });
 
     const prov = mapProveedorRow(row);
-    prov.categorias = await attachCategoriasInfo(schema, empresaId, id);
     return NextResponse.json(successResponse({ proveedor: prov }));
   } catch (err) {
     console.error("[/api/proveedores/[id] GET]", err instanceof Error ? err.message : err);
@@ -140,15 +122,10 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
         await updateProveedor(schema, empresaId, id, patch);
       }
 
-      if (Array.isArray(body.categoria_ids)) {
-        const categoriaIds = (body.categoria_ids as unknown[]).map((x) => String(x)).filter(Boolean);
-        await replaceRelacionesProveedor(schema, empresaId, id, categoriaIds);
-      }
 
       const row = await getProveedorById(schema, empresaId, id);
       if (!row) return NextResponse.json(errorResponse("Proveedor no encontrado."), { status: 404 });
       const prov = mapProveedorRow(row);
-      prov.categorias = await attachCategoriasInfo(schema, empresaId, id);
       return NextResponse.json(successResponse({ proveedor: prov }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";

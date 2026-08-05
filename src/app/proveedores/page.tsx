@@ -33,12 +33,10 @@ export default function ProveedoresPage() {
     const t = busqueda.trim().toLowerCase();
     if (!t) return lista;
     return lista.filter((p) => {
-      const cats = (p.categorias ?? []).map((c) => c.nombre.toLowerCase()).join(" ");
       return (
         p.nombre.toLowerCase().includes(t) ||
         (p.ruc ?? "").toLowerCase().includes(t) ||
-        (p.email ?? "").toLowerCase().includes(t) ||
-        cats.includes(t)
+        (p.email ?? "").toLowerCase().includes(t)
       );
     });
   }, [lista, busqueda]);
@@ -63,12 +61,6 @@ export default function ProveedoresPage() {
             visible={isAdmin}
             onCompleted={() => setRefreshKey((k) => k + 1)}
           />
-          <Link
-            href="/proveedores/categorias"
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Categorías
-          </Link>
           <Link
             href="/proveedores/nuevo"
             className="rounded-lg bg-[#0EA5E9] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#0284C7]"
@@ -99,7 +91,6 @@ export default function ProveedoresPage() {
                 <th className="py-3 pr-4 font-semibold">Proveedor</th>
                 <th className="py-3 pr-4 font-semibold">RUC</th>
                 <th className="py-3 pr-4 font-semibold">Contacto</th>
-                <th className="py-3 pr-4 font-semibold">Categorías</th>
                 <th className="py-3 pr-4 font-semibold">Estado</th>
                 <th className="py-3 font-semibold w-24" />
               </tr>
@@ -130,22 +121,6 @@ export default function ProveedoresPage() {
                     <td className="py-3 pr-4 text-slate-600">
                       <div>{p.contacto ?? "—"}</div>
                       <div className="text-xs text-slate-400">{p.telefono ?? ""}</div>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <div className="flex flex-wrap gap-1">
-                        {(p.categorias ?? []).length === 0 ? (
-                          <span className="text-xs text-slate-400">—</span>
-                        ) : (
-                          p.categorias!.map((c) => (
-                            <span
-                              key={c.id}
-                              className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
-                            >
-                              {c.nombre}
-                            </span>
-                          ))
-                        )}
-                      </div>
                     </td>
                     <td className="py-3 pr-4">
                       <span

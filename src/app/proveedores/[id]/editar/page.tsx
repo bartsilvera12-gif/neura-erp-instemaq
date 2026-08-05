@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ProveedorForm, { emptyProveedorForm, type ProveedorFormValues } from "@/app/proveedores/ProveedorForm";
-import { getProveedor, getCategoriasProveedor, updateProveedor } from "@/lib/proveedores/storage";
-import type { ProveedorCategoria } from "@/lib/proveedores/types";
+import { getProveedor, updateProveedor } from "@/lib/proveedores/storage";
 
 export default function EditarProveedorPage() {
   const router = useRouter();
@@ -13,7 +12,6 @@ export default function EditarProveedorPage() {
   const id = typeof params?.id === "string" ? params.id : "";
 
   const [form, setForm] = useState<ProveedorFormValues>(emptyProveedorForm);
-  const [categorias, setCategorias] = useState<ProveedorCategoria[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,9 +20,8 @@ export default function EditarProveedorPage() {
     if (!id) return;
     let cancel = false;
     setLoading(true);
-    Promise.all([getProveedor(id), getCategoriasProveedor({ todas: true })]).then(([p, cats]) => {
+    getProveedor(id).then((p) => {
       if (cancel) return;
-      setCategorias(cats);
       if (!p) {
         setError("Proveedor no encontrado.");
         setLoading(false);
@@ -44,7 +41,6 @@ export default function EditarProveedorPage() {
         plazo_pago_dias: p.plazo_pago_dias != null ? String(p.plazo_pago_dias) : "",
         moneda_preferida: p.moneda_preferida ?? "",
         observaciones: p.observaciones ?? "",
-        categoria_ids: (p.categorias ?? []).map((c) => c.id),
       });
       setLoading(false);
     });
@@ -76,7 +72,6 @@ export default function EditarProveedorPage() {
         form.plazo_pago_dias.trim() === "" ? null : parseInt(form.plazo_pago_dias, 10),
       moneda_preferida: form.moneda_preferida === "" ? null : form.moneda_preferida,
       observaciones: form.observaciones.trim() || null,
-      categoria_ids: form.categoria_ids,
     });
     setSaving(false);
     if (!res.ok) {
@@ -103,7 +98,7 @@ export default function EditarProveedorPage() {
         <p className="text-slate-500">Cargando…</p>
       ) : (
         <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <ProveedorForm values={form} onChange={setForm} categorias={categorias} disabled={saving} />
+          <ProveedorForm values={form} onChange={setForm} disabled={saving} />
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
           )}
