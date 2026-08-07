@@ -59,6 +59,7 @@ export default function InventarioPage() {
   const [busqueda,         setBusqueda]         = useState("");
   const [filtroCategoria,  setFiltroCategoria]  = useState("");
   const [filtroStock,      setFiltroStock]      = useState<"todos" | "bajo" | "sin" | "con">("todos");
+  const [filtroTipoProd,   setFiltroTipoProd]   = useState<"" | "reventa" | "repuesto" | "servicio">("");
   const [categorias,       setCategorias]       = useState<{ id: string; nombre: string }[]>([]);
   const [porPagina,        setPorPagina]        = useState(25);
   const [pagina,           setPagina]           = useState(1);
@@ -102,6 +103,9 @@ export default function InventarioPage() {
       const heno = `${foldText(p.nombre)} ${foldText(p.sku ?? "")}`;
       if (!términos.every((t) => heno.includes(t))) return false;
     }
+
+    // Tipo de producto (reventa / repuesto / servicio)
+    if (filtroTipoProd && (p.tipo_producto ?? "reventa") !== filtroTipoProd) return false;
 
     // Categoría
     if (filtroCategoria && p.categoria_principal_id !== filtroCategoria) return false;
@@ -176,7 +180,7 @@ export default function InventarioPage() {
   const hastaItem = porPagina === 0 ? productos.length : Math.min(paginaActual * porPagina, productos.length);
 
   const hayFiltrosActivos =
-    busqueda || filtroCategoria || filtroStock !== "todos" ||
+    busqueda || filtroCategoria || filtroStock !== "todos" || filtroTipoProd ||
     filtroPorNombre || filtroPorSku || filtroPorCosto ||
     filtroPorPrecio || filtroValuacion || filtroUbicacion || soloStockBajo ||
     filtroTipo !== "todos";
@@ -186,6 +190,7 @@ export default function InventarioPage() {
     setBusqueda("");
     setFiltroCategoria("");
     setFiltroStock("todos");
+    setFiltroTipoProd("");
     setFiltroPorNombre("");
     setFiltroPorSku("");
     setFiltroPorCosto("");
@@ -289,6 +294,20 @@ export default function InventarioPage() {
               {categorias.map((c) => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
+            </select>
+          </div>
+
+          <div className="min-w-[10rem]">
+            <label className="mb-1 block text-xs font-medium text-slate-500">Tipo</label>
+            <select
+              value={filtroTipoProd}
+              onChange={(e) => { setFiltroTipoProd(e.target.value as typeof filtroTipoProd); setPagina(1); }}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#4FAEB2] focus:ring-2 focus:ring-[#4FAEB2]/20"
+            >
+              <option value="">Todos</option>
+              <option value="reventa">Reventa</option>
+              <option value="repuesto">Repuesto</option>
+              <option value="servicio">Servicio</option>
             </select>
           </div>
 
