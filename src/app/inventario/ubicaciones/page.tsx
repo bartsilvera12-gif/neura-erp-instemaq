@@ -91,14 +91,14 @@ export default function UbicacionesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Depósitos y ubicaciones</h1>
           <p className="text-gray-600">
             Donde se almacena físicamente cada producto: depósitos, salones, pasillos, góndolas, estantes, zonas.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <ExportExcelButton url="/api/inventario/ubicaciones/export" />
           <ImportExcelButton
             entidad="Ubicaciones"

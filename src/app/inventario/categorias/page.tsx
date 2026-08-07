@@ -87,15 +87,15 @@ export default function CategoriasProductosPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Categorías de productos</h1>
           <p className="text-gray-600">Clasificá tus productos para reportes y búsqueda.</p>
-          <div className="mt-3 max-w-2xl rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-            Estas categorías aparecen en el selector <strong>Categoría principal</strong> de Nuevo producto.
-          </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="max-w-2xl rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          Estas categorías aparecen en el selector <strong>Categoría principal</strong> de Nuevo producto.
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
           <ExportExcelButton url="/api/inventario/categorias/export" />
           <ImportExcelButton
             entidad="Categorías"
