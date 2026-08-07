@@ -55,6 +55,9 @@ import {
   YAxis,
 } from "recharts";
 
+// Selector "Viendo como" ocultado a pedido del negocio. true = reactivar.
+const MOSTRAR_VIENDO_COMO = false;
+
 // ── ZENTRA (solo dashboard / esta página) ─────────────────────────────────────
 // Paleta turquesa #4FAEB2 (rediseño 2026). Shell BLANCO con detalles turquesa
 // (paleta dashboard Zentra). Cards blancas con ring turquesa, texto en slate
@@ -2256,7 +2259,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          {usuarios.length > 0 && (
+          {MOSTRAR_VIENDO_COMO && usuarios.length > 0 && (
             <div className="flex flex-col gap-1.5 sm:items-end">
               <span className="text-[10px] uppercase tracking-wide" style={{ color: Z.muted }}>
                 Viendo como
