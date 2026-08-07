@@ -380,6 +380,13 @@ function NuevoClienteForm() {
     router.push(`/clientes/${clienteId}`);
   }
 
+  // ── Campos ocultados a pedido del negocio (Instemaq) ────────────────────────
+  // Se ocultan de la interfaz sin borrar la lógica: los estados conservan sus
+  // valores por defecto y el alta sigue funcionando. Poner en `true` para reactivar.
+  const MOSTRAR_TIPO_SERVICIO = false;
+  const MOSTRAR_DATOS_COMERCIALES = false;
+  const MOSTRAR_PERFIL_TRIBUTARIO = false;
+
   return (
     <div className="space-y-8">
 
@@ -429,6 +436,7 @@ function NuevoClienteForm() {
               </div>
             )}
 
+            {MOSTRAR_TIPO_SERVICIO && (
             <div>
               <label className={labelClass}>Tipo de servicio</label>
               <select
@@ -445,6 +453,7 @@ function NuevoClienteForm() {
                 ))}
               </select>
             </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -583,6 +592,7 @@ function NuevoClienteForm() {
           </section>
 
           {/* ── Datos comerciales ────────────────────────────────────────── */}
+          {MOSTRAR_DATOS_COMERCIALES && (
           <section className="space-y-4">
             <SectionTitle>Datos comerciales</SectionTitle>
 
@@ -776,8 +786,9 @@ function NuevoClienteForm() {
               </div>
             )}
           </section>
+          )}
 
-          {gestionTributariaEmpresa && (
+          {MOSTRAR_PERFIL_TRIBUTARIO && gestionTributariaEmpresa && (
             <section className="space-y-3">
               <details className="group rounded-2xl border border-indigo-100/80 bg-gradient-to-b from-slate-50/80 to-white shadow-sm open:shadow-md transition-shadow [open]:shadow-md">
                 <summary className="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-3.5 flex items-center justify-between gap-2 text-left [&::-webkit-details-marker]:hidden">
