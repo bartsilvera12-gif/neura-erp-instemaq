@@ -118,6 +118,7 @@ export default function NuevaCompraPage() {
   const [formProducto, setFormProducto] = useState({
     nombre: "", sku: "", unidad_medida: "Unidad", metodo_valuacion: "CPP" as MetodoValuacion,
     stock_minimo: "0", precio_venta_sugerido: "", tipo: "reventa" as "reventa" | "menu" | "materia",
+    tipo_producto: "reventa" as "reventa" | "repuesto",
   });
   const [errorSku, setErrorSku] = useState<string | null>(null);
   const [generandoSku, setGenerandoSku] = useState(false);
@@ -369,6 +370,7 @@ export default function NuevaCompraPage() {
       unidad_medida: formProducto.unidad_medida.toUpperCase(), metodo_valuacion: formProducto.metodo_valuacion,
       stock_actual: 0, stock_minimo: parseInt(formProducto.stock_minimo) || 0,
       costo_promedio: 0, precio_venta: parseFloat(formProducto.precio_venta_sugerido) || 0,
+      tipo_producto: formProducto.tipo_producto,
       ...flags,
     });
     if (!creado) return;
@@ -376,11 +378,11 @@ export default function NuevaCompraPage() {
     agregarProducto(creado);
     setProductoCreado(creado.nombre);
     setMostrarFormProducto(false);
-    setFormProducto({ nombre: "", sku: "", unidad_medida: "Unidad", metodo_valuacion: "CPP", stock_minimo: "0", precio_venta_sugerido: "", tipo: "reventa" });
+    setFormProducto({ nombre: "", sku: "", unidad_medida: "Unidad", metodo_valuacion: "CPP", stock_minimo: "0", precio_venta_sugerido: "", tipo: "reventa", tipo_producto: "reventa" });
   }
   function handleCancelarProducto() {
     setMostrarFormProducto(false);
-    setFormProducto({ nombre: "", sku: "", unidad_medida: "Unidad", metodo_valuacion: "CPP", stock_minimo: "0", precio_venta_sugerido: "", tipo: "reventa" });
+    setFormProducto({ nombre: "", sku: "", unidad_medida: "Unidad", metodo_valuacion: "CPP", stock_minimo: "0", precio_venta_sugerido: "", tipo: "reventa", tipo_producto: "reventa" });
     setErrorSku(null);
   }
 
@@ -539,22 +541,17 @@ export default function NuevaCompraPage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="col-span-2">
                       <label className={labelSmClass}>Tipo de producto</label>
-                      <SegmentedControl<"reventa" | "menu" | "materia"> small value={formProducto.tipo}
+                      <SegmentedControl<"reventa" | "repuesto"> small value={formProducto.tipo_producto}
                         options={[
                           { value: "reventa", label: "Reventa" },
-                          { value: "menu", label: "Menú" },
-                          { value: "materia", label: "Materia prima" },
+                          { value: "repuesto", label: "Repuesto" },
                         ]}
-                        onChange={(v) => setFormProducto((prev) => ({
-                          ...prev,
-                          tipo: v,
-                          unidad_medida: v === "materia" && prev.unidad_medida === "Unidad" ? "G" : prev.unidad_medida,
-                        }))} />
-                      {formProducto.tipo === "materia" && (
-                        <p className="mt-1.5 text-xs text-amber-600">
-                          Materia prima / insumo: se usa en recetas. No requiere precio de venta.
-                        </p>
-                      )}
+                        onChange={(v) => setFormProducto((prev) => ({ ...prev, tipo_producto: v }))} />
+                      <p className="mt-1.5 text-xs text-slate-500">
+                        {formProducto.tipo_producto === "repuesto"
+                          ? "Repuesto: entra al inventario y se descuenta al usarse en un servicio (no se detalla en la factura)."
+                          : "Reventa: mercadería que se compra y se revende tal cual."}
+                      </p>
                     </div>
                     <div>
                       <label className={labelSmClass}>Nombre <span className="text-red-500">*</span></label>
