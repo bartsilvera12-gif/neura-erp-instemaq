@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { enRangoCalendario, rangoDesdeHastaInputs, toCalendarDateStr } from "@/lib/fechas/calendario";
 import { getFacturas } from "@/lib/gestion-clientes/storage";
@@ -39,7 +40,22 @@ interface PagoCobrado {
   referencia?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo Cobros/Pagos OCULTO de la interfaz (pedido del negocio).
+// No se borra código ni datos: el componente original queda intacto abajo
+// (PagosPageInner) y el acceso por URL redirige al inicio. Para reactivar el
+// módulo, restaurar el export default a PagosPageInner y quitar este guard.
+// ─────────────────────────────────────────────────────────────────────────────
 export default function PagosPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/");
+  }, [router]);
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function PagosPageInner() {
   const [tab, setTab] = useState<TabPagos>("pendientes");
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
