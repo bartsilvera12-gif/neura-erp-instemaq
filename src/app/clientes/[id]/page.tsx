@@ -58,6 +58,12 @@ import {
   type TributarioFormState,
 } from "@/components/clientes/ClientePerfilTributarioForm";
 import { ClienteDatosSifenReceptorForm } from "@/components/clientes/ClienteDatosSifenReceptorForm";
+
+// ── Campos ocultados a pedido del negocio (Instemaq) ────────────────────────────
+// Se ocultan de la interfaz sin borrar lógica ni datos. true = reactivar.
+const MOSTRAR_SIFEN_CLIENTE = false;
+const MOSTRAR_PERFIL_TRIBUTARIO_CLIENTE = false;
+
 // ── Estilos ────────────────────────────────────────────────────────────────────
 
 const inputClass =
@@ -1554,6 +1560,7 @@ export default function ClienteDetailPage() {
                   </div>
                 </div>
 
+                {MOSTRAR_SIFEN_CLIENTE && (
                 <ClienteDatosSifenReceptorForm
                   value={{
                     sifen_receptor_manual: form.sifen_receptor_manual,
@@ -1620,6 +1627,7 @@ export default function ClienteDetailPage() {
                     });
                   }}
                 />
+                )}
               </section>
 
               {/* Digital */}
@@ -1871,7 +1879,7 @@ export default function ClienteDetailPage() {
                 )}
               </section>
 
-              {gestionTributariaEmpresa && (
+              {MOSTRAR_PERFIL_TRIBUTARIO_CLIENTE && gestionTributariaEmpresa && (
                 <section className="space-y-3">
                   <details
                     className="group rounded-2xl border border-indigo-100/80 bg-gradient-to-b from-slate-50/80 to-white shadow-sm open:shadow-md transition-shadow [open]:shadow-md"
