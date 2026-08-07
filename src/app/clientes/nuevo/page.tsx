@@ -422,6 +422,24 @@ function NuevoClienteForm() {
           <section className="space-y-4">
             <SectionTitle>Identificación</SectionTitle>
 
+            <div>
+              <label className={labelClass}>Tipo de cliente</label>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden w-fit">
+                {(["empresa", "persona"] as TipoCliente[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, tipo_cliente: t }))}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      form.tipo_cliente === t ? "bg-[#0EA5E9] text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {t === "empresa" ? "Empresa" : "Persona"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {form.tipo_cliente === "empresa" && (
               <div>
                 <label className={labelClass}>
