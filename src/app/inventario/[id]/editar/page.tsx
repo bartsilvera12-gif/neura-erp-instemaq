@@ -47,6 +47,7 @@ export default function EditarProductoPage() {
     stock_minimo: "",
     unidad_medida: "",
     metodo_valuacion: "CPP" as MetodoValuacion,
+    tipo_producto: "reventa" as "reventa" | "repuesto" | "servicio",
   });
   const [imagenPath, setImagenPath] = useState<string | null>(null);
   const [imagenUrl, setImagenUrl] = useState<string | null>(null);
@@ -148,6 +149,7 @@ export default function EditarProductoPage() {
         stock_minimo: String(p.stock_minimo),
         unidad_medida: p.unidad_medida,
         metodo_valuacion: p.metodo_valuacion,
+        tipo_producto: p.tipo_producto ?? "reventa",
       });
       setCodigoOriginal(p.codigo_barras ?? null);
       setImagenPath(p.imagen_path ?? null);
@@ -285,6 +287,7 @@ export default function EditarProductoPage() {
         stock_minimo: parseInt(form.stock_minimo) || 0,
         unidad_medida: form.unidad_medida.trim().toUpperCase() || "UNIDAD",
         metodo_valuacion: form.metodo_valuacion,
+        tipo_producto: form.tipo_producto,
         categoria_principal_id: categoriaId,
         ubicacion_principal_id: ubicacionId,
         proveedor_principal_id: proveedorId,
@@ -404,6 +407,35 @@ export default function EditarProductoPage() {
               rows={tipoGastro === "menu" ? 3 : 2}
               className={inputClass}
             />
+          </div>
+
+          {/* Tipo de producto: define cómo se comporta en ventas e inventario */}
+          <div>
+            <label className={labelClass}>Tipo de producto</label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { v: "reventa", t: "Reventa", d: "Se compra y se revende" },
+                { v: "repuesto", t: "Repuesto", d: "Se consume en reparaciones" },
+                { v: "servicio", t: "Servicio", d: "Mano de obra, sin stock" },
+              ] as const).map((o) => {
+                const on = form.tipo_producto === o.v;
+                return (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, tipo_producto: o.v }))}
+                    className={`rounded-xl border px-4 py-2.5 text-left transition-colors ${
+                      on
+                        ? "border-[#4FAEB2] bg-[#4FAEB2]/10 text-[#2F6E71]"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-[#4FAEB2]/50"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{o.t}</span>
+                    <span className="block text-xs text-slate-400">{o.d}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
