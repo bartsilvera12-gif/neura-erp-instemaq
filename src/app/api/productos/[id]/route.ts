@@ -66,6 +66,32 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  request: NextRequest,
+  ctxParams: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctxParams.params;
+    const ctx = await getTenantSupabaseFromAuth(request);
+    if (!ctx) return NextResponse.json(errorResponse(API_ERRORS.UNAUTHORIZED), { status: 401 });
+    // Borrado lógico: preserva historial (movimientos, compras) y no rompe FKs.
+    // El listado filtra por activo = true, así que el producto deja de aparecer.
+    const upd = await ctx.supabase
+      .from("productos")
+      .update({ activo: false })
+      .eq("empresa_id", ctx.auth.empresa_id)
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (upd.error) throw new Error(upd.error.message);
+    if (!upd.data) return NextResponse.json(errorResponse(API_ERRORS.NOT_FOUND), { status: 404 });
+    return NextResponse.json(successResponse({ id }));
+  } catch (err) {
+    console.error("[/api/productos/[id] DELETE]", err instanceof Error ? err.message : err);
+    return NextResponse.json(errorResponse("No se pudo eliminar el producto."), { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   ctxParams: { params: Promise<{ id: string }> }

@@ -302,6 +302,20 @@ export async function updateProducto(
   return rowToProducto(data);
 }
 
+/** Elimina un producto (borrado lógico: activo = false). Preserva historial. */
+export async function deleteProducto(id: string): Promise<boolean> {
+  const res = await fetch(`/api/productos/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const json = await res.json().catch(() => ({} as Record<string, unknown>));
+  if (!res.ok || !json?.success) {
+    const msg = (json as { error?: string })?.error ?? `Error ${res.status} al eliminar producto.`;
+    throw new Error(msg);
+  }
+  return true;
+}
+
 // ─── Movimientos ─────────────────────────────────────────────────────────────
 
 /** Lista movimientos via API server-side (PG directo). */

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getProductos } from "@/lib/inventario/storage";
+import { getProductos, deleteProducto } from "@/lib/inventario/storage";
 import type { Producto, MetodoValuacion } from "@/lib/inventario/types";
 import ExportExcelButton from "@/components/ui/ExportExcelButton";
 import ImportExcelButton from "@/components/ui/ImportExcelButton";
@@ -63,6 +63,7 @@ export default function InventarioPage() {
   const [categorias,       setCategorias]       = useState<{ id: string; nombre: string }[]>([]);
   const [porPagina,        setPorPagina]        = useState(25);
   const [pagina,           setPagina]           = useState(1);
+  const [deletingId,       setDeletingId]       = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +93,20 @@ export default function InventarioPage() {
       .catch(() => undefined);
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  async function handleEliminar(id: string, nombre: string) {
+    if (deletingId) return;
+    if (!window.confirm(`¿Eliminar el producto "${nombre}"? Dejará de aparecer en el inventario.`)) return;
+    setDeletingId(id);
+    try {
+      await deleteProducto(id);
+      setTodos((prev) => prev.filter((x) => x.id !== id));
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "No se pudo eliminar el producto.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const ubicacionById = new Map(ubicaciones.map((u) => [u.id, u]));
 
@@ -546,12 +561,22 @@ export default function InventarioPage() {
                       {margen.toFixed(2)}%
                     </td>
                     <td className="py-4 pl-4 text-center">
-                      <Link
-                        href={`/inventario/${p.id}/editar`}
-                        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
-                      >
-                        Editar
-                      </Link>
+                      <div className="inline-flex items-center gap-2">
+                        <Link
+                          href={`/inventario/${p.id}/editar`}
+                          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                        >
+                          Editar
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminar(p.id, p.nombre)}
+                          disabled={deletingId === p.id}
+                          className="inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {deletingId === p.id ? "Eliminando…" : "Eliminar"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
