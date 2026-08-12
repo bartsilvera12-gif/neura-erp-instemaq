@@ -18,10 +18,14 @@ function asItems(body: unknown): CreateVentaItemInput[] | null {
     const r = x as Record<string, unknown>;
     const tipoIva = r.tipo_iva;
     if (tipoIva !== "EXENTA" && tipoIva !== "5%" && tipoIva !== "10%") return null;
+    const productoId = String(r.producto_id ?? "");
+    // Línea manual: un trabajo/servicio escrito a mano, sin producto del catálogo.
+    const esManual = r.es_manual === true || productoId === "";
+    const costo = Number(r.costo_unitario);
     out.push({
-      producto_id: String(r.producto_id ?? ""),
+      producto_id: esManual ? null : productoId,
       producto_nombre: String(r.producto_nombre ?? ""),
-      sku: String(r.sku ?? ""),
+      sku: esManual ? null : String(r.sku ?? ""),
       cantidad: Number(r.cantidad),
       precio_venta_original: Number(r.precio_venta_original),
       precio_venta: Number(r.precio_venta),
@@ -29,9 +33,13 @@ function asItems(body: unknown): CreateVentaItemInput[] | null {
       subtotal: Number(r.subtotal),
       monto_iva: Number(r.monto_iva),
       total_linea: Number(r.total_linea),
+      es_manual: esManual,
+      costo_unitario: esManual && Number.isFinite(costo) && costo >= 0 ? costo : null,
     });
   }
-  if (out.some((i) => !i.producto_id || !(i.cantidad > 0))) return null;
+  if (out.some((i) => !(i.cantidad > 0))) return null;
+  // Las de catálogo necesitan producto; las manuales, descripción.
+  if (out.some((i) => (i.es_manual ? !i.producto_nombre.trim() : !i.producto_id))) return null;
   return out;
 }
 
@@ -52,9 +60,11 @@ function toVentaResponse(
   }
 ): Venta {
   const lineas: LineaVenta[] = items.map((i) => ({
-    producto_id: i.producto_id,
+    producto_id: i.producto_id ?? "",
     producto_nombre: i.producto_nombre,
-    sku: i.sku,
+    sku: i.sku ?? "",
+    es_manual: i.es_manual === true,
+    costo_unitario: i.costo_unitario ?? null,
     cantidad: i.cantidad,
     precio_venta_original: i.precio_venta_original,
     precio_venta: i.precio_venta,

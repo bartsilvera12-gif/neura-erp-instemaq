@@ -74,6 +74,14 @@ export interface LineaVentaRaw {
   subtotal: number;
   monto_iva?: number;
   total: number;
+  /** Línea escrita a mano (trabajo/servicio): no sale del catálogo. */
+  es_manual?: boolean;
+  /**
+   * Costo por unidad cargado a mano en las líneas manuales. Cuando viene, es la
+   * fuente del costo de esa línea: el producto no existe en el catálogo y por lo
+   * tanto no hay `costo_promedio` de dónde sacarlo.
+   */
+  costo_unitario?: number | null;
 }
 
 export interface VentaRaw {
@@ -432,6 +440,8 @@ export async function getDashboardData(): Promise<DashboardData> {
         subtotal: Number(r.subtotal) ?? 0,
         monto_iva: Number(r.monto_iva) ?? 0,
         total: Number(r.total_linea) ?? 0,
+        es_manual: r.es_manual === true,
+        costo_unitario: r.costo_unitario == null ? null : Number(r.costo_unitario),
       });
       itemsByVenta.set(ventaId, lineas);
     }

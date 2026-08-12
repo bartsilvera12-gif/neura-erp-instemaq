@@ -120,9 +120,10 @@ interface VentaRow {
 }
 
 interface ItemRow {
-  producto_id: string;
+  /** NULL en las líneas manuales (trabajos escritos a mano, sin producto). */
+  producto_id: string | null;
   producto_nombre: string;
-  sku: string;
+  sku: string | null;
   cantidad: number | string;
   precio_venta: number | string;
   total_linea: number | string;
@@ -285,7 +286,8 @@ export async function GET(request: NextRequest, ctxParams: { params: Promise<{ i
   }
 
   // Clasificación por categoría (primary) + SKU (fallback)
-  const productoIds = [...new Set(itemsRaw.map((i) => i.producto_id))];
+  // Las líneas manuales no tienen producto: quedan fuera de la clasificación.
+  const productoIds = [...new Set(itemsRaw.map((i) => i.producto_id).filter((x): x is string => !!x))];
   const sectorByProd = new Map<string, Sector>();
   if (productoIds.length > 0) {
     try {
@@ -330,8 +332,8 @@ export async function GET(request: NextRequest, ctxParams: { params: Promise<{ i
   }
 
   const items: EnrichedItem[] = itemsRaw.map((it) => {
-    const fromCat = sectorByProd.get(it.producto_id) ?? null;
-    const sector: Sector = fromCat ?? classifyBySku(it.sku);
+    const fromCat = it.producto_id ? sectorByProd.get(it.producto_id) ?? null : null;
+    const sector: Sector = fromCat ?? classifyBySku(it.sku ?? "");
     return { ...it, sector };
   });
 

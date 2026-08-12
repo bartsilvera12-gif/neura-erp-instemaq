@@ -1847,7 +1847,9 @@ function DashVentas({
   const gananciaHoy = useMemo(() =>
     ventasHoy.flatMap(v => v.lineas ?? []).reduce((s, l) => {
       if (!l) return s;
-      const costo = prodMap[l.producto_id]?.costo_promedio ?? 0;
+      // En un trabajo cargado a mano el costo lo escribió el usuario: no hay
+      // producto en el catálogo del cual sacar un costo_promedio.
+      const costo = l.costo_unitario ?? prodMap[l.producto_id]?.costo_promedio ?? 0;
       return s + (l.precio_venta - costo) * l.cantidad;
     }, 0),
     [ventasHoy, prodMap]

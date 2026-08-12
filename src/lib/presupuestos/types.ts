@@ -38,6 +38,11 @@ export interface PresupuestoItem {
   monto_iva: number;
   descuento: number;
   total: number;
+  /**
+   * Costo estimado por unidad (repuestos + mano de obra). Interno: sirve para ver
+   * el margen antes de cerrar el trabajo y NO se muestra en el PDF del cliente.
+   */
+  costo_unitario?: number | null;
 }
 
 export interface Presupuesto {

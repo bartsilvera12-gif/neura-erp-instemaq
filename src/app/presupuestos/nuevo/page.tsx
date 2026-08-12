@@ -48,6 +48,8 @@ type Item = {
   precio_unitario: number;
   iva_tipo: IvaTipoPresupuesto;
   descuento: number;
+  /** Costo estimado por unidad. Interno: no sale en el PDF del cliente. */
+  costo_unitario: number | null;
 };
 
 function fmtGs(n: number) {
@@ -202,6 +204,7 @@ export default function NuevoPresupuestoPage() {
           precio_unitario: p.precio_venta,
           iva_tipo: "10%",
           descuento: 0,
+          costo_unitario: null,
         },
       ];
     });
@@ -243,6 +246,7 @@ export default function NuevoPresupuestoPage() {
         precio_unitario: 0,
         iva_tipo: "10%",
         descuento: 0,
+        costo_unitario: null,
       },
     ]);
   }
@@ -266,8 +270,17 @@ export default function NuevoPresupuestoPage() {
       total += t.total;
       desc += Number(it.descuento) || 0;
     }
-    return { subtotal: round2(subtotal), iva: round2(iva), desc: round2(desc), total: round2(total) };
+    // Costo estimado: solo suma las líneas donde se cargó un costo.
+    const costo = items.reduce((s, it) => s + (it.costo_unitario ?? 0) * (Number(it.cantidad) || 0), 0);
+    return {
+      subtotal: round2(subtotal),
+      iva: round2(iva),
+      desc: round2(desc),
+      total: round2(total),
+      costo: round2(costo),
+    };
   }, [items]);
+  const hayCostoEstimado = items.some((it) => (it.costo_unitario ?? 0) > 0);
 
   const valido =
     clienteNombre.trim().length > 0 &&
@@ -303,6 +316,7 @@ export default function NuevoPresupuestoPage() {
             precio_unitario: Number(it.precio_unitario),
             iva_tipo: it.iva_tipo,
             descuento: Number(it.descuento) || 0,
+            costo_unitario: it.costo_unitario,
           })),
         }),
       });
@@ -447,6 +461,8 @@ export default function NuevoPresupuestoPage() {
                   <th className="py-2 px-2 w-32">Precio unit.</th>
                   <th className="py-2 px-2 w-24">IVA</th>
                   <th className="py-2 px-2 w-28">Descuento</th>
+                  {/* Interno: sirve para ver el margen, no sale en el PDF del cliente. */}
+                  <th className="py-2 px-2 w-32">Costo estim.</th>
                   <th className="py-2 px-2 w-32 text-right">Total</th>
                   <th className="py-2 pl-2 w-10"></th>
                 </tr>
@@ -473,6 +489,19 @@ export default function NuevoPresupuestoPage() {
                       <td className="py-2 px-2">
                         <input type="number" min="0" step="1" value={it.descuento} onChange={(e) => updItem(i, { descuento: Number(e.target.value) })} className={inputClass} />
                       </td>
+                      <td className="py-2 px-2">
+                        <input
+                          type="number" min="0" step="1"
+                          value={it.costo_unitario ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updItem(i, { costo_unitario: v === "" ? null : Math.max(0, Number(v) || 0) });
+                          }}
+                          placeholder="0"
+                          title="Cuánto estimás que cuesta (repuestos + mano de obra). Interno."
+                          className={inputClass}
+                        />
+                      </td>
                       <td className="py-2 px-2 text-right tabular-nums font-medium">{fmtGs(t.total)}</td>
                       <td className="py-2 pl-2 text-right">
                         <button onClick={() => delItem(i)} className="text-red-600 hover:text-red-700" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
@@ -491,6 +520,19 @@ export default function NuevoPresupuestoPage() {
             <div className="flex justify-between"><span className="text-gray-500">IVA</span><span className="tabular-nums">{fmtGs(totales.iva)}</span></div>
             {totales.desc > 0 && <div className="flex justify-between"><span className="text-gray-500">Descuentos</span><span className="tabular-nums">- {fmtGs(totales.desc)}</span></div>}
             <div className="flex justify-between border-t border-slate-200 pt-1 font-semibold text-base"><span>Total</span><span className="tabular-nums text-[#4FAEB2]">{fmtGs(totales.total)}</span></div>
+            {/* Margen estimado — interno, no sale en el PDF que ve el cliente. */}
+            {hayCostoEstimado && (
+              <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
+                <div className="flex justify-between text-xs text-gray-500"><span>Costo estimado</span><span className="tabular-nums">{fmtGs(totales.costo)}</span></div>
+                <div className="mt-1 flex justify-between font-semibold">
+                  <span className="text-gray-700">Ganancia estimada</span>
+                  <span className={`tabular-nums ${totales.total - totales.costo >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    {fmtGs(totales.total - totales.costo)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-gray-400">Solo uso interno: no aparece en el presupuesto del cliente.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

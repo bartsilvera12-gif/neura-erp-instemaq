@@ -33,6 +33,11 @@ function parseItems(raw: unknown): PresupuestoItemInput[] | null {
       precio_unitario: precio,
       iva_tipo: asIva(r.iva_tipo),
       descuento: Math.max(0, Number(r.descuento) || 0),
+      // Costo estimado (interno): solo se guarda si vino un número válido.
+      costo_unitario:
+        r.costo_unitario == null || !Number.isFinite(Number(r.costo_unitario))
+          ? null
+          : Math.max(0, Number(r.costo_unitario)),
     });
   }
   return out;

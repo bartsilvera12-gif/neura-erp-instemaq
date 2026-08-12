@@ -11,6 +11,11 @@ export interface PresupuestoItemInput {
   precio_unitario: number;
   iva_tipo: IvaTipoPresupuesto;
   descuento: number;
+  /**
+   * Costo estimado por unidad (repuestos + mano de obra), para ver el margen del
+   * trabajo antes de cerrarlo. Es interno: no se muestra en el PDF del cliente.
+   */
+  costo_unitario?: number | null;
 }
 
 export interface CrearPresupuestoInput {
@@ -154,6 +159,10 @@ export async function crearPresupuesto(
     monto_iva: calc.monto_iva,
     descuento: calc.descuento,
     total: calc.total,
+    costo_unitario:
+      raw.costo_unitario == null || !Number.isFinite(Number(raw.costo_unitario))
+        ? null
+        : Math.max(0, Number(raw.costo_unitario)),
   }));
   const insItems = await sb.from("presupuesto_items").insert(itemsRows);
   if (insItems.error) {
