@@ -33,7 +33,7 @@ import {
   Wallet,
   Banknote,
   Truck,
-  Inbox,
+  // Inbox, // usado por el ítem "Recepción" (oculto)
   ReceiptText,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
@@ -98,7 +98,10 @@ const MENU_STRUCTURE: MenuItem[] = [
     { label: "Productos", href: "/inventario" },
     { label: "Movimientos", href: "/inventario/movimientos" },
     { label: "Categorías", href: "/inventario/categorias" },
-    { label: "Depósitos / Ubicaciones", href: "/inventario/ubicaciones" },
+    // "Depósitos / Ubicaciones" OCULTO (pedido del negocio: una sola sucursal, se
+    // trabaja con el depósito original y nada más). Para reactivar: descomentar
+    // esta línea y quitar el guard de src/app/inventario/ubicaciones/page.tsx.
+    // { label: "Depósitos / Ubicaciones", href: "/inventario/ubicaciones" },
   ]},
   { key: "clientes", slug: "clientes", label: "Clientes", href: "/clientes", icon: Users },
   { key: "gestion-clientes", slug: "gestion-clientes", label: "Gestión Clientes", href: "/gestion-clientes", icon: Users },
@@ -116,7 +119,11 @@ const MENU_STRUCTURE: MenuItem[] = [
   },
   // Remisión y Recepción son módulos independientes: emitir vs recibir mercadería.
   { key: "remision", slug: "remision", label: "Remisión", href: "/notas-remision", icon: Truck },
-  { key: "recepcion", slug: "recepcion", label: "Recepción", href: "/recepcion", icon: Inbox },
+  // Recepción OCULTA de la interfaz (pedido del negocio: una sola sucursal, no se
+  // usa el circuito de recibir mercadería). Para reactivar: descomentar esta línea,
+  // el import de `Inbox`, la key "recepcion" en MENU_FAMILIES y quitar el guard de
+  // src/app/recepcion/page.tsx.
+  // { key: "recepcion", slug: "recepcion", label: "Recepción", href: "/recepcion", icon: Inbox },
   { key: "presupuestos", slug: "presupuestos", label: "Presupuestos", href: "/presupuestos", icon: FileText },
   { key: "gastos", slug: "gastos", label: "Gastos", href: "/gastos", icon: Receipt },
   // Recibos de dinero: comprobante interno de dinero recibido (no fiscal).
@@ -149,7 +156,7 @@ const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "inicio", titulo: "Inicio", keys: ["dashboard"] },
   { id: "comercial", titulo: "Comercial", keys: ["clientes", "gestion-clientes", "ventas", "presupuestos"] },
   { id: "finanzas", titulo: "Finanzas", keys: ["recibos", "gastos", "notas_credito"] },
-  { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision", "recepcion"] },
+  { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
   { id: "administracion", titulo: "Administración", keys: ["usuarios", "configuracion"] },
 ];

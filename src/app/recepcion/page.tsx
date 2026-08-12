@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Inbox, CheckCircle2, XCircle, Search } from "lucide-react";
 import { fetchDepositos, fetchNRs, fetchNR, aprobarNR, rechazarNR, type Deposito, type NotaRemision } from "@/lib/multideposito/client";
 
@@ -13,7 +14,23 @@ function fmtFecha(iso: string) {
   } catch { return iso; }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Módulo Recepción OCULTO de la interfaz (pedido del negocio: una sola sucursal,
+// no se usa el circuito de recibir mercadería). No se borra código ni datos: el
+// componente original queda intacto abajo (RecepcionNRPageInner) y el acceso por
+// URL redirige al inicio. Para reactivar, restaurar el export default a
+// RecepcionNRPageInner, quitar este guard y descomentar el ítem en el Sidebar.
+// ─────────────────────────────────────────────────────────────────────────────
 export default function RecepcionNRPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/");
+  }, [router]);
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function RecepcionNRPageInner() {
   const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [pendientes, setPendientes] = useState<NotaRemision[]>([]);
   const [numeroBuscar, setNumeroBuscar] = useState("");

@@ -161,7 +161,7 @@ export default function EmitirNRPage() {
               onClick={() => { setCreada(null); setCantidades({}); setProductosAgregados([]); setEmisor(""); setObs(""); }}
               className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >Emitir otra</button>
-            <button type="button" onClick={() => router.push("/recepcion")} className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">Ir a Recepción</button>
+            {/* Botón "Ir a Recepción" oculto junto con el módulo Recepción. */}
           </div>
         </div>
       </div>

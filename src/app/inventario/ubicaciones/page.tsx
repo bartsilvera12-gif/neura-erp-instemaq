@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ExportExcelButton from "@/components/ui/ExportExcelButton";
 import { FancySelect } from "@/components/ui/FancySelect";
@@ -18,7 +19,24 @@ interface Ubicacion {
 
 const TIPOS = ["deposito","salon","pasillo","gondola","estante","zona","otro"] as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ABM de Depósitos/Ubicaciones OCULTO de la interfaz (pedido del negocio: hay una
+// sola sucursal, se usa el depósito original y no se administran ubicaciones).
+// No se borra código ni datos: el componente original queda intacto abajo
+// (UbicacionesPageInner) y el acceso por URL redirige a Inventario. Para
+// reactivar, restaurar el export default a UbicacionesPageInner, quitar este
+// guard y descomentar el ítem del Sidebar.
+// ─────────────────────────────────────────────────────────────────────────────
 export default function UbicacionesPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/inventario");
+  }, [router]);
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function UbicacionesPageInner() {
   const { isAdmin } = useIsAdmin();
   const [items, setItems] = useState<Ubicacion[]>([]);
   const [loading, setLoading] = useState(true);

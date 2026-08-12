@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Truck, Plus, Inbox, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Truck, Plus, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { fetchDepositos, fetchNRs, type Deposito, type NotaRemision, type NotaRemisionEstado } from "@/lib/multideposito/client";
 
 function fmt(n: number) { return n.toLocaleString("es-PY"); }
@@ -67,9 +67,7 @@ export default function HistorialNRPage() {
             <p className="mt-1 text-sm text-slate-500">Historial completo de traspasos entre depósitos.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/recepcion" className="rounded-lg border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50 inline-flex items-center gap-1.5">
-              <Inbox className="h-4 w-4" /> Recepción
-            </Link>
+            {/* Acceso a Recepción oculto junto con el módulo (ver Sidebar / app/recepcion). */}
             <Link href="/notas-remision/nueva" className="rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-emerald-500/30 hover:shadow-md inline-flex items-center gap-1.5">
               <Plus className="h-4 w-4" /> Emitir NR
             </Link>
@@ -159,9 +157,7 @@ export default function HistorialNRPage() {
                         >
                           Imprimir
                         </Link>
-                        {nr.estado === "pendiente" && (
-                          <Link href="/recepcion" className="rounded-md border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-100">Recibir</Link>
-                        )}
+                        {/* Botón "Recibir" oculto junto con el módulo Recepción. */}
                       </div>
                     </td>
                   </tr>
