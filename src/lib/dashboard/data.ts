@@ -414,17 +414,25 @@ export async function getDashboardData(): Promise<DashboardData> {
       fecha: toCalendarDateStr(r.fecha as string),
     }));
 
-    productos = (d.productos ?? []).map((r: Record<string, unknown>) => ({
-      id: r.id as string,
-      nombre: (r.nombre as string) ?? "",
-      sku: (r.sku as string) ?? "",
-      costo_promedio: Number(r.costo_promedio) ?? 0,
-      precio_venta: Number(r.precio_venta) ?? 0,
-      stock_actual: Number(r.stock_actual) ?? 0,
-      stock_minimo: Number(r.stock_minimo) ?? 0,
-      unidad_medida: (r.unidad_medida as string) ?? "Unidad",
-      metodo_valuacion: (r.metodo_valuacion as string) ?? "CPP",
-    }));
+    // Los productos eliminados (borrado lógico: activo = false) quedan fuera del
+    // dashboard, igual que en el listado de Inventario (`/api/productos` filtra
+    // por activo = true). Si no, un producto dado de baja seguía apareciendo como
+    // "crítico por stock 0" y sumaba al KPI de bajo stock.
+    // `!== false` y no `=== true`: si una instancia no tuviera la columna, se
+    // mantiene el comportamiento anterior en vez de vaciar el dashboard.
+    productos = (d.productos ?? [])
+      .filter((r: Record<string, unknown>) => r.activo !== false)
+      .map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        nombre: (r.nombre as string) ?? "",
+        sku: (r.sku as string) ?? "",
+        costo_promedio: Number(r.costo_promedio) ?? 0,
+        precio_venta: Number(r.precio_venta) ?? 0,
+        stock_actual: Number(r.stock_actual) ?? 0,
+        stock_minimo: Number(r.stock_minimo) ?? 0,
+        unidad_medida: (r.unidad_medida as string) ?? "Unidad",
+        metodo_valuacion: (r.metodo_valuacion as string) ?? "CPP",
+      }));
 
     const itemsByVenta = new Map<string, LineaVentaRaw[]>();
     for (const it of d.ventas_items ?? []) {
