@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { getConfig } from "@/lib/config/storage";
 import { getUsuarios } from "@/lib/usuarios/storage";
@@ -1675,6 +1676,10 @@ function DashInventario({
           ]} centerLabel="productos" />
         </motion.div>
         <motion.div whileHover={{ y: -2 }} className="col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-6 transition-shadow hover:shadow-md">
+          {/* Esta tabla NO usa variantes `dark:`. La app fuerza fondos claros, pero
+              Tailwind resuelve `dark:` por el tema del sistema operativo (no por la
+              clase .dark de globals.css): en una PC en modo oscuro el texto salía
+              casi invisible sobre el fondo blanco. */}
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
             Productos críticos — stock bajo mínimo
           </h3>
@@ -1683,41 +1688,69 @@ function DashInventario({
               <span>✅</span> Todos los productos tienen stock suficiente.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <div className="overflow-hidden rounded-lg border border-slate-200">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
-                    <th className="w-10 px-3 py-3">
-                      <input type="checkbox" className="rounded border-slate-300 text-[#0EA5E9] focus:ring-[#0EA5E9]" />
-                    </th>
-                    {["Producto", "Stock actual", "Stock mín.", "Estado", "Proveedor"].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-slate-500 px-3 py-3 uppercase tracking-wide">{h}</th>
+                    {["Producto", "Stock actual", "Stock mín.", "Estado", "Proveedor"].map((h, i) => (
+                      <th
+                        key={h}
+                        className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
+                          i === 0 ? "text-left" : i === 4 ? "text-left" : "text-right"
+                        }`}
+                      >
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {criticos.map(p => (
-                    <tr key={p.id} className={`${p.stock_actual <= 0 ? "bg-red-50/40 dark:bg-red-900/10" : "bg-amber-50/30 dark:bg-amber-900/10"} hover:bg-opacity-80 transition-colors`}>
-                      <td className="px-3 py-2.5">
-                        <input type="checkbox" className="rounded border-slate-300 text-[#0EA5E9] focus:ring-[#0EA5E9]" />
-                      </td>
-                      <td className="px-3 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200">{p.nombre}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`text-xs font-bold tabular-nums ${p.stock_actual <= 0 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
-                          {p.stock_actual} {p.unidad_medida}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">{p.stock_minimo} {p.unidad_medida}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          p.stock_actual <= 0 ? "bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]" : "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]"
-                        }`}>
-                          {p.stock_actual <= 0 ? "Crítico" : "Bajo"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">{proveedorMap[String(p.id)] ?? "—"}</td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-slate-100">
+                  {criticos.map(p => {
+                    const critico = p.stock_actual <= 0;
+                    return (
+                      <tr key={p.id} className="transition-colors hover:bg-slate-50">
+                        {/* El estado se lee del punto de color y del badge, no de un
+                            fondo tintado que competía con el texto. */}
+                        <td className="px-4 py-2.5">
+                          <Link
+                            href={`/inventario/${p.id}/editar`}
+                            className="group flex items-center gap-2.5"
+                            title="Abrir el producto para reponer stock"
+                          >
+                            <span
+                              className={`h-2 w-2 shrink-0 rounded-full ${critico ? "bg-red-500" : "bg-amber-500"}`}
+                              aria-hidden
+                            />
+                            <span className="text-sm font-medium text-slate-800 group-hover:text-[#0284C7] group-hover:underline">
+                              {p.nombre}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={`text-sm font-bold tabular-nums ${critico ? "text-red-600" : "text-amber-600"}`}>
+                            {p.stock_actual}
+                          </span>
+                          <span className="ml-1 text-[11px] uppercase text-slate-400">{p.unidad_medida}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-sm tabular-nums text-slate-500">
+                          {p.stock_minimo}
+                          <span className="ml-1 text-[11px] uppercase text-slate-400">{p.unidad_medida}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            critico
+                              ? "bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]"
+                              : "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]"
+                          }`}>
+                            {critico ? "Sin stock" : "Bajo mínimo"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-sm text-slate-500">
+                          {proveedorMap[String(p.id)] ?? <span className="text-slate-300">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

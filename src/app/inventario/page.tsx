@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Image as ImageIcon } from "lucide-react";
 import { getProductos, deleteProducto } from "@/lib/inventario/storage";
 import type { Producto, MetodoValuacion } from "@/lib/inventario/types";
 import ExportExcelButton from "@/components/ui/ExportExcelButton";
@@ -26,15 +27,47 @@ function foldText(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-function calcularMargenVenta(costo: number, precio: number): number {
-  if (precio === 0) return 0;
+/**
+ * Margen sobre venta: (precio − costo) / precio.
+ * Devuelve null cuando falta el costo: sin costo cargado el cálculo daría 100%
+ * y se leería como un producto rentabilísimo, cuando en realidad no se sabe.
+ */
+function calcularMargenVenta(costo: number, precio: number): number | null {
+  if (precio <= 0 || costo <= 0) return null;
   return ((precio - costo) / precio) * 100;
 }
 
-function margenColor(margen: number): string {
-  if (margen >= 40) return "text-green-600";
-  if (margen >= 20) return "text-yellow-600";
-  return "text-red-600";
+/** Markup sobre costo: (precio − costo) / costo. Es el % que carga el negocio. */
+function calcularMarkup(costo: number, precio: number): number | null {
+  if (costo <= 0) return null;
+  return ((precio - costo) / costo) * 100;
+}
+
+function margenBadge(margen: number): string {
+  if (margen >= 40) return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+  if (margen >= 20) return "bg-amber-50 text-amber-700 ring-amber-200";
+  return "bg-red-50 text-red-700 ring-red-200";
+}
+
+/** Miniatura del producto; si no hay imagen (o falla), cae a un ícono neutro. */
+function ProductoThumb({ url, alt }: { url?: string | null; alt: string }) {
+  const [err, setErr] = useState(false);
+  if (!url || err) {
+    return (
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-300">
+        <ImageIcon className="h-4 w-4" />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={alt}
+      loading="lazy"
+      onError={() => setErr(true)}
+      className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 object-cover"
+    />
+  );
 }
 
 export default function InventarioPage() {
@@ -464,63 +497,90 @@ export default function InventarioPage() {
         <EdgeScrollArea>
           <table className="w-full text-left text-sm">
 
-            <thead>
-              <tr className="bg-slate-50 text-slate-600 text-sm font-semibold">
-                <th className="py-3 pr-4 font-medium">Nombre</th>
-                <th className="py-3 pr-4 font-medium">SKU</th>
-                <th className="py-3 pr-4 font-medium">Costo Prom.</th>
-                <th className="py-3 pr-4 font-medium">Precio Venta</th>
-                <th className={`py-3 pr-4 font-medium text-center`}>Stock</th>
-                <th className={`py-3 pr-4 font-medium text-center`}>Stock Mín.</th>
-                <th className="py-3 pr-4 font-medium">Unidad</th>
-                {/* Columna "Ubicación" oculta junto con el ABM de Depósitos/Ubicaciones. */}
-                <th className="py-3 pr-4 font-medium">Valuación</th>
-                <th className="py-3 pr-6 font-medium text-right">
-                  <span title="(precio - costo) / precio × 100">Margen s/venta</span>
+            {/* Cabecera fija: al scrollear una lista larga no se pierde la referencia. */}
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-slate-200 bg-slate-50/95 text-[11px] uppercase tracking-wide text-slate-500 backdrop-blur">
+                <th className="py-2.5 pl-4 pr-4 font-semibold">Producto</th>
+                <th className="py-2.5 pr-4 text-right font-semibold">Costo prom.</th>
+                <th className="py-2.5 pr-4 text-right font-semibold">Precio venta</th>
+                <th className="py-2.5 pr-4 text-right font-semibold">
+                  <span title="(precio − costo) / precio × 100. El markup sobre costo se ve al pasar el mouse.">
+                    Margen s/venta
+                  </span>
                 </th>
-                <th className="py-3 pl-4 font-medium text-center w-28">Acción</th>
+                <th className="py-2.5 pr-4 text-right font-semibold">Stock</th>
+                <th className="py-2.5 pr-4 text-center font-semibold">Valuación</th>
+                <th className="w-32 py-2.5 pl-4 pr-4 text-right font-semibold">Acción</th>
               </tr>
             </thead>
 
             <tbody>
               {productosPagina.map((p) => {
                 const stockBajo = p.stock_actual <= p.stock_minimo;
+                const sinStock = p.stock_actual <= 0;
                 const margen = calcularMargenVenta(p.costo_promedio, p.precio_venta);
+                const markup = calcularMarkup(p.costo_promedio, p.precio_venta);
+                const sinCosto = p.costo_promedio <= 0;
                 return (
-                  <tr key={p.id} className="border-b border-slate-200 last:border-0 hover:bg-[#4FAEB2]/[0.04] transition-colors">
-                    <td className="py-4 pr-4 font-medium text-gray-800">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{p.nombre}</span>
-                        {(() => {
-                          const v = p.es_vendible !== false;
-                          const i = p.es_insumo === true;
-                          // Mixto/Insumo se siguen mostrando; Vendible queda oculto (redundante: ya hay tab).
-                          if (v && i) return <span className="inline-flex items-center rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium px-2 py-0.5">Mixto</span>;
-                          if (i) return <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-medium px-2 py-0.5">Insumo</span>;
-                          return null;
-                        })()}
+                  <tr key={p.id} className="border-b border-slate-100 last:border-0 transition-colors hover:bg-[#4FAEB2]/[0.05]">
+                    {/* Producto: imagen + nombre + SKU + etiquetas, todo junto */}
+                    <td className="py-3 pl-4 pr-4">
+                      <div className="flex items-center gap-3">
+                        <ProductoThumb url={p.imagen_url} alt={p.nombre} />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-medium leading-snug text-gray-800">{p.nombre}</span>
+                            {(() => {
+                              const v = p.es_vendible !== false;
+                              const i = p.es_insumo === true;
+                              // Mixto/Insumo se siguen mostrando; Vendible queda oculto (redundante: ya hay tab).
+                              if (v && i) return <span className="inline-flex items-center rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium px-2 py-0.5">Mixto</span>;
+                              if (i) return <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-medium px-2 py-0.5">Insumo</span>;
+                              return null;
+                            })()}
+                          </div>
+                          <p className="font-mono text-[11px] text-slate-400">{p.sku}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-4 pr-4 text-gray-500 font-mono">{p.sku}</td>
-                    <td className="py-4 pr-4 text-gray-700">{formatGs(p.costo_promedio)}</td>
-                    <td className="py-4 pr-4 text-gray-700">{formatGs(p.precio_venta)}</td>
-                    <td className={`py-4 pr-4 text-center`}>
-                      <span className={`font-semibold ${stockBajo ? "text-red-600" : "text-gray-800"}`}>
+                    <td className="py-3 pr-4 text-right tabular-nums text-gray-700">
+                      {sinCosto ? <span className="text-slate-300">—</span> : formatGs(p.costo_promedio)}
+                    </td>
+                    <td className="py-3 pr-4 text-right tabular-nums font-medium text-gray-800">
+                      {formatGs(p.precio_venta)}
+                    </td>
+                    {/* Margen: sin costo cargado no se puede calcular (no es 100%) */}
+                    <td className="py-3 pr-4 text-right">
+                      {margen === null ? (
+                        <span
+                          className="text-xs text-slate-400"
+                          title="Falta cargar el costo del producto: sin ese dato no se puede calcular el margen."
+                        >
+                          Sin costo
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset ${margenBadge(margen)}`}
+                          title={markup !== null ? `Equivale a ${markup.toFixed(2)}% de markup sobre el costo` : undefined}
+                        >
+                          {margen.toFixed(1)}%
+                        </span>
+                      )}
+                    </td>
+                    {/* Stock + unidad + mínimo, agrupados en una sola columna */}
+                    <td className="py-3 pr-4 text-right">
+                      <span className={`text-sm font-semibold tabular-nums ${sinStock ? "text-red-600" : stockBajo ? "text-amber-600" : "text-gray-800"}`}>
                         {p.stock_actual}
                       </span>
+                      <span className="ml-1 text-[11px] uppercase text-slate-400">{p.unidad_medida}</span>
+                      <p className="text-[11px] text-slate-400">mín. {p.stock_minimo}</p>
                     </td>
-                    <td className={`py-4 pr-4 text-center text-gray-500`}>{p.stock_minimo}</td>
-                    <td className="py-4 pr-4 text-gray-600">{p.unidad_medida}</td>
-                    {/* Celda "Ubicación" oculta junto con su columna. */}
-                    <td className="py-4 pr-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${metodoBadge[p.metodo_valuacion]}`}>
+                    <td className="py-3 pr-4 text-center">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${metodoBadge[p.metodo_valuacion]}`}>
                         {p.metodo_valuacion}
                       </span>
                     </td>
-                    <td className={`py-4 pr-6 text-right tabular-nums font-semibold ${margenColor(margen)}`}>
-                      {margen.toFixed(2)}%
-                    </td>
-                    <td className="py-4 pl-4 text-center">
+                    <td className="py-3 pl-4 pr-4 text-right">
                       <div className="inline-flex items-center gap-2">
                         <Link
                           href={`/inventario/${p.id}/editar`}
@@ -541,6 +601,26 @@ export default function InventarioPage() {
                   </tr>
                 );
               })}
+              {/* Sin resultados: antes la tabla quedaba en blanco, sin explicación. */}
+              {!cargandoLista && productosPagina.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center">
+                    <p className="text-sm text-slate-500">
+                      {todos.length === 0
+                        ? "Todavía no cargaste productos."
+                        : "Ningún producto coincide con los filtros."}
+                    </p>
+                    {hayFiltrosActivos && (
+                      <button
+                        onClick={limpiarFiltros}
+                        className="mt-2 text-sm font-medium text-[#0284C7] hover:underline"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )}
             </tbody>
 
           </table>
