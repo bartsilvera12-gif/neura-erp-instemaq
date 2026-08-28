@@ -8,6 +8,7 @@ import { BootProvider, useBoot } from "@/components/BootContext";
 import { getCurrentUser, getSession } from "@/lib/auth";
 import { getModuleAccessCached } from "@/lib/modulos/module-access-cache";
 import { isBootstrapSuperAdminEmail } from "@/lib/auth/super-admin-bootstrap-email";
+import { esRolAdminEmpresaOGlobal } from "@/lib/auth/rol-empresa";
 import {
   firstAccessibleHref,
   isModuleSlugGranted,
@@ -18,6 +19,9 @@ const PUBLIC_ROUTES = ["/login"];
 
 type ModuleAccess = {
   superAdmin: boolean;
+  /** Rol admin/administrador de empresa (o global). Habilita rutas restringidas
+   *  por URL —como /configuracion— aunque el módulo no esté activo. */
+  isAdmin: boolean;
   slugs: Set<string>;
   inactiveSlugs: Set<string>;
   strict: boolean;
@@ -86,10 +90,13 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
         superAdmin = bootstrapSuper;
       }
 
+      let isAdmin = false;
       if (!superAdmin) {
         try {
           const cu = await getCurrentUser();
-          if ((cu?.rol ?? "").trim() === "super_admin") superAdmin = true;
+          const rol = (cu?.rol ?? "").trim();
+          if (rol === "super_admin") superAdmin = true;
+          isAdmin = esRolAdminEmpresaOGlobal(rol);
         } catch {
           /* sin fila usuarios en cliente */
         }
@@ -97,6 +104,7 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
 
       setAccess({
         superAdmin,
+        isAdmin,
         slugs: new Set(slugs),
         inactiveSlugs: new Set(inactiveSlugs),
         strict,
@@ -134,6 +142,13 @@ function AuthGuardInner({ children }: { children: React.ReactNode }) {
       !access.superAdmin &&
       !isModuleSlugGranted(slug, access.slugs, access.inactiveSlugs, { strict: access.strict })
     ) {
+      // Configuración: accesible SOLO por URL (oculta del sidebar, ver Sidebar.tsx).
+      // Los admins de empresa pueden entrar aunque el módulo `configuracion` no esté
+      // activo; los usuarios comunes siguen viendo "Módulo no habilitado".
+      if (slug === "configuracion" && access.isAdmin) {
+        setBlockedSlug(null);
+        return;
+      }
       setBlockedSlug(slug);
       return;
     }

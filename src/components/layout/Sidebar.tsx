@@ -11,7 +11,7 @@ import {
   Package,
   Users,
   FileText,
-  Settings,
+  // Settings, // usado por el ítem "Configuración" (oculto del sidebar, acceso solo por URL)
   UserCog,
   Building2,
   ChevronDown,
@@ -134,17 +134,22 @@ const MENU_STRUCTURE: MenuItem[] = [
   },
   // Sistema: el acceso lo decide empresa_modulos; si el módulo no está habilitado, no se muestra.
   { key: "usuarios", slug: "usuarios", label: "Usuarios", href: "/usuarios", icon: UserCog },
-  {
-    key: "configuracion",
-    slug: "configuracion",
-    label: "Configuración",
-    href: "/configuracion",
-    icon: Settings,
-    children: [
-      { label: "Facturación", href: "/configuracion/facturacion" },
-      { label: "Equipos y supervisión", href: "/configuracion/omnicanal-equipos" },
-    ],
-  },
+  // Configuración OCULTA del sidebar (pedido del negocio: se accede SOLO por URL,
+  // navegando manualmente a /configuracion). El acceso por URL sigue funcionando
+  // vía AuthGuard (superadmin o módulo `configuracion` habilitado); esto solo saca
+  // el ítem del menú lateral. Para reactivar en el sidebar: descomentar este bloque
+  // y volver a agregar la key "configuracion" en MENU_FAMILIES → "administracion".
+  // {
+  //   key: "configuracion",
+  //   slug: "configuracion",
+  //   label: "Configuración",
+  //   href: "/configuracion",
+  //   icon: Settings,
+  //   children: [
+  //     { label: "Facturación", href: "/configuracion/facturacion" },
+  //     { label: "Equipos y supervisión", href: "/configuracion/omnicanal-equipos" },
+  //   ],
+  // },
 ];
 
 /**
@@ -158,7 +163,8 @@ const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "finanzas", titulo: "Finanzas", keys: ["recibos", "gastos", "notas_credito"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
-  { id: "administracion", titulo: "Administración", keys: ["usuarios", "configuracion"] },
+  // "configuracion" se dejó fuera a propósito: es accesible solo por URL, no en el sidebar.
+  { id: "administracion", titulo: "Administración", keys: ["usuarios"] },
 ];
 
 function modulosSyntheticFromMenu(): ModuloEmpresa[] {
