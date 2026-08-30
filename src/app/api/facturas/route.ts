@@ -66,10 +66,58 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Nombre de cliente para mostrar en listados/reportes (empresa || nombre_contacto).
+    const clienteIds = Array.from(
+      new Set(
+        facturas
+          .map((f) => (typeof f.cliente_id === "string" ? f.cliente_id : null))
+          .filter((v): v is string => Boolean(v))
+      )
+    );
+    const clienteDisplayById = new Map<string, string>();
+    if (clienteIds.length > 0) {
+      const { data: cliRows } = await supabase
+        .from("clientes")
+        .select("id, nombre_contacto, empresa")
+        .eq("empresa_id", auth.empresa_id)
+        .in("id", clienteIds);
+      if (Array.isArray(cliRows)) {
+        for (const cli of cliRows as { id?: string; nombre_contacto?: string; empresa?: string }[]) {
+          const cid = typeof cli.id === "string" ? cli.id : "";
+          if (!cid) continue;
+          const display = (cli.empresa ?? "").trim() || (cli.nombre_contacto ?? "").trim() || "Cliente";
+          clienteDisplayById.set(cid, display);
+        }
+      }
+    }
+
+    // Estado SIFEN por factura (si tiene documento electrónico asociado).
+    const estadoSifenByFactura = new Map<string, string>();
+    if (ids.length > 0) {
+      const { data: feRows } = await supabase
+        .from("factura_electronica")
+        .select("factura_id, estado_sifen")
+        .eq("empresa_id", auth.empresa_id)
+        .in("factura_id", ids);
+      if (Array.isArray(feRows)) {
+        for (const fe of feRows as { factura_id?: string; estado_sifen?: string }[]) {
+          const fid = typeof fe.factura_id === "string" ? fe.factura_id : "";
+          if (!fid) continue;
+          if (fe.estado_sifen != null) estadoSifenByFactura.set(fid, String(fe.estado_sifen));
+        }
+      }
+    }
+
     const enriched = facturas.map((row) => {
       const rid = typeof row.id === "string" ? row.id : "";
+      const cid = typeof row.cliente_id === "string" ? row.cliente_id : "";
       const fp = rid ? lastPagoByFactura.get(rid) ?? null : null;
-      return { ...row, fecha_pago_registro: fp };
+      return {
+        ...row,
+        fecha_pago_registro: fp,
+        cliente_display: cid ? clienteDisplayById.get(cid) ?? "Cliente" : "Cliente",
+        estado_sifen: rid ? estadoSifenByFactura.get(rid) ?? null : null,
+      };
     });
 
     return NextResponse.json(successResponse(enriched));

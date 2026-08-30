@@ -132,6 +132,8 @@ const MENU_STRUCTURE: MenuItem[] = [
     key: "notas_credito", slug: "notas_credito", label: "Notas de crédito",
     href: "/notas-credito", icon: ScrollText,
   },
+  // Reportes: vistas consolidadas (facturas, etc.). Acceso por empresa_modulos slug "reportes".
+  { key: "reportes", slug: "reportes", label: "Reportes", href: "/reportes", icon: BarChart3 },
   // Sistema: el acceso lo decide empresa_modulos; si el módulo no está habilitado, no se muestra.
   { key: "usuarios", slug: "usuarios", label: "Usuarios", href: "/usuarios", icon: UserCog },
   // Configuración OCULTA del sidebar (pedido del negocio: se accede SOLO por URL,
@@ -163,6 +165,7 @@ const MENU_FAMILIES: { id: string; titulo: string; keys: string[] }[] = [
   { id: "finanzas", titulo: "Finanzas", keys: ["recibos", "gastos", "notas_credito"] },
   { id: "operaciones", titulo: "Operaciones", keys: ["inventario", "compras", "remision"] },
   { id: "omnicanal", titulo: "Omnicanal", keys: ["conversaciones"] },
+  { id: "reportes", titulo: "Reportes", keys: ["reportes"] },
   // "configuracion" se dejó fuera a propósito: es accesible solo por URL, no en el sidebar.
   { id: "administracion", titulo: "Administración", keys: ["usuarios"] },
 ];
