@@ -1006,6 +1006,13 @@ export default function NuevaVentaPage() {
         try { window.open(docUrl, "_blank", "noopener"); } catch {}
       }
       if (generaNota) { try { window.open(remisionUrl, "_blank", "noopener"); } catch {} }
+      // Facturación electrónica (modo 'sifen'): si se emitió el DE y ya hay XML
+      // firmado, abrir el KuDE (PDF fiscal con QR) además del ticket. Si el SET
+      // aún no confirmó, el DE queda reintentable desde el detalle de la factura.
+      const fact = resultado.facturacion;
+      if (fact?.kude_disponible && fact.kude_url) {
+        try { window.open(fact.kude_url, "_blank", "noopener"); } catch {}
+      }
       // Redirige directo al listado de ventas en lugar de mostrar el modal
       // post-venta. El cajero queda libre para registrar otra venta de
       // inmediato. El ticket sigue accesible desde el listado.

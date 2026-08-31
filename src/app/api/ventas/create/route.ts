@@ -7,6 +7,8 @@ import type { CreateVentaItemInput } from "@/lib/ventas/server/create-venta-pg";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import type { Venta, LineaVenta } from "@/lib/ventas/types";
+import { getFacturacionModo } from "@/lib/facturacion/server/facturacion-modo-pg";
+import { facturarVenta, type FacturacionVentaResumen } from "@/lib/ventas/server/facturar-venta";
 
 function asItems(body: unknown): CreateVentaItemInput[] | null {
   if (!body || typeof body !== "object") return null;
@@ -230,7 +232,33 @@ export async function POST(request: NextRequest) {
       total: tot,
     });
 
-    return NextResponse.json(successResponse({ venta }));
+    // Facturación electrónica automática al confirmar la venta (si la empresa está en
+    // modo 'sifen'). NO bloqueante: la venta y el stock ya están confirmados; cualquier
+    // fallo del SET deja el DE reintentable desde el panel de la factura sin trabar la venta.
+    let facturacion: FacturacionVentaResumen | null = null;
+    try {
+      const modo = await getFacturacionModo(schema, auth.empresa_id);
+      if (modo.modo === "sifen") {
+        facturacion = await facturarVenta(auth, ventaId);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error de facturación (no bloqueante).";
+      console.error("[ventas/create] facturación no bloqueante:", msg);
+      facturacion = {
+        ok: false,
+        factura_id: null,
+        numero_factura: null,
+        estado_de: null,
+        aprobado: false,
+        reintentable: false,
+        cdc: null,
+        kude_disponible: false,
+        kude_url: null,
+        error: msg,
+      };
+    }
+
+    return NextResponse.json(successResponse({ venta, facturacion }));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error al crear la venta.";
     const status =

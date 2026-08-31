@@ -75,6 +75,8 @@ export interface SifenBuildClienteRow {
   sifen_direccion_de?: string | null;
   sifen_num_casa_de?: number | string | null;
   sifen_descripcion_tipo_doc?: string | null;
+  /** Consumidor final / innominado: receptor sin identificar (venta de mostrador). */
+  sifen_receptor_innominado?: boolean | null;
 }
 
 export interface SifenBuildConfigRow {
@@ -211,6 +213,27 @@ function validateReceptor(
   }
   if (trimStr(cliente.id) !== trimStr(factura.cliente_id)) {
     return { ok: false, error: "El cliente cargado no coincide con cliente_id de la factura." };
+  }
+  // Consumidor final / innominado (venta de mostrador): receptor fijo sin identificar.
+  // Se resuelve ANTES de las validaciones de nombre/RUC/documento (que no aplican aquí).
+  if (parseBoolCliente(cliente.sifen_receptor_innominado)) {
+    const receptor: SifenPayloadReceptor = {
+      cliente_id: cliente.id,
+      nombre: "Sin Nombre",
+      documento: null,
+      ruc: null,
+      direccion: null,
+      telefono: null,
+      email: null,
+      receptor_extranjero: false,
+      sifen_receptor_config_manual: true,
+      sifen_i_nat_rec: 2,
+      sifen_i_ti_ope: 2,
+      tipo_doc_receptor: 5,
+      num_id_receptor: "0",
+      sifen_receptor_innominado: true,
+    };
+    return { ok: true, receptor };
   }
   if (clienteUsaReceptorSifenManual(cliente)) {
     return validateReceptorExplicitManual(cliente, factura.cliente_id);

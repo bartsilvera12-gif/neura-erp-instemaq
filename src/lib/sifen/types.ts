@@ -262,6 +262,11 @@ export interface SifenPayloadReceptor {
   sifen_d_dir_rec?: string | null;
   /** dNumCasRec (entero ≥ 0). */
   sifen_d_num_cas_rec?: number | null;
+  /**
+   * Receptor innominado / consumidor final (venta de mostrador sin identificar).
+   * Fuerza iNatRec=2, iTiOpe=2, iTipIDRec=5, dNumIDRec="0", dNomRec="Sin Nombre"; sin dirección.
+   */
+  sifen_receptor_innominado?: boolean;
 }
 
 export interface SifenPayloadItem {

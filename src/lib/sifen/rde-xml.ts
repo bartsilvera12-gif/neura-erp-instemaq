@@ -432,7 +432,18 @@ export function buildOfficialRdeFacturaElectronicaXml(
   gEmisParts.push("</gEmis>");
 
   const recParts: string[] = ["<gDatRec>"];
-  if (
+  if (receptor.sifen_receptor_innominado === true) {
+    // Consumidor final / innominado (venta de mostrador sin identificar).
+    // No lleva RUC, documento, dirección ni datos de contacto.
+    recParts.push(textEl("iNatRec", "2"));
+    recParts.push(textEl("iTiOpe", "2"));
+    recParts.push(textEl("cPaisRec", "PRY"));
+    recParts.push(textEl("dDesPaisRe", "Paraguay"));
+    recParts.push(textEl("iTipIDRec", "5"));
+    recParts.push(textEl("dDTipIDRec", "Innominado"));
+    recParts.push(textEl("dNumIDRec", "0"));
+    recParts.push(textEl("dNomRec", "Sin Nombre"));
+  } else if (
     receptor.sifen_receptor_config_manual === true &&
     receptor.sifen_i_nat_rec != null &&
     receptor.sifen_i_ti_ope != null

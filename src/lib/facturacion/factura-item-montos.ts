@@ -61,3 +61,11 @@ export function tasaIvaDesdeIvaTipo(v: unknown): TasaIvaItem {
   if (s === "iva_5") return 5;
   return 10;
 }
+
+/** Normaliza el tipo de IVA de una línea de venta ("EXENTA"|"5%"|"10%") a tasa numérica. Default 10. */
+export function tasaIvaDesdeTipoIvaVenta(v: unknown): TasaIvaItem {
+  const s = typeof v === "string" ? v.trim().toUpperCase() : "";
+  if (s === "EXENTA") return 0;
+  if (s === "5%") return 5;
+  return 10;
+}

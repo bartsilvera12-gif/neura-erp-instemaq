@@ -14,8 +14,22 @@ export type FaltanteStock = {
   bloqueante?: boolean;
 };
 
+/** Resumen de facturación electrónica devuelto al confirmar la venta (modo 'sifen'). */
+export type FacturacionResumenUI = {
+  ok: boolean;
+  factura_id: string | null;
+  numero_factura: string | null;
+  estado_de: string | null;
+  aprobado: boolean;
+  reintentable: boolean;
+  cdc: string | null;
+  kude_disponible: boolean;
+  kude_url: string | null;
+  error: string | null;
+};
+
 export type ResultadoGuardarVenta =
-  | { success: true; venta: Venta }
+  | { success: true; venta: Venta; facturacion?: FacturacionResumenUI | null }
   | { success: false; error: string; faltantes?: FaltanteStock[] };
 
 /** Modalidad del pedido (instancia gastronómica En lo de Mari). */
@@ -127,7 +141,7 @@ export async function saveVenta(
 
     const json = (await res.json()) as {
       success?: boolean;
-      data?: { venta?: Venta };
+      data?: { venta?: Venta; facturacion?: FacturacionResumenUI | null };
       error?: string;
       faltantes?: FaltanteStock[];
     };
@@ -140,7 +154,7 @@ export async function saveVenta(
       };
     }
 
-    return { success: true, venta: json.data.venta };
+    return { success: true, venta: json.data.venta, facturacion: json.data.facturacion ?? null };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error de red.";
     return { success: false, error: msg };
