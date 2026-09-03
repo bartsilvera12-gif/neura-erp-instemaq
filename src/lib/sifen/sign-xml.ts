@@ -162,3 +162,39 @@ export function signSifenDocumentoXml(
   const rawSigned = sig.getSignedXml();
   return anexarCamFuFdSiFalta(ensureRdeRootSchemaAttrs(rawSigned), qr);
 }
+
+/** Nodo firmado del evento: `rEve` dentro de `rGesEve` (Id referenciado por la firma). */
+const XPATH_EVE = "/*[local-name(.)='rGesEve']/*[local-name(.)='rEve']";
+
+/**
+ * Firma un grupo de evento SIFEN (`rGesEve` → `rEve`). A diferencia de la factura,
+ * NO agrega gCamFuFD/QR ni normaliza atributos de rDE: el evento es un documento
+ * distinto. La `Signature` se inserta como hermano posterior a `rEve` bajo `rGesEve`.
+ */
+export function signSifenEventoXml(xmlUtf8: string, material: P12KeyMaterial): string {
+  const trimmed = xmlUtf8.trim();
+  if (!/<\s*rGesEve\b/i.test(trimmed) || !/<\s*rEve\b/i.test(trimmed)) {
+    throw new Error("Se esperaba un XML con raíz rGesEve que contenga un elemento rEve para firmar.");
+  }
+
+  const privateKey = createPrivateKey({ key: material.privateKeyPem, format: "pem" });
+
+  const sig = new SignedXml({
+    privateKey,
+    publicCert: material.certificatePem,
+    signatureAlgorithm: SIG_ALG,
+    canonicalizationAlgorithm: "http://www.w3.org/2001/10/xml-exc-c14n#",
+  });
+
+  sig.addReference({
+    xpath: XPATH_EVE,
+    transforms: [...TRANSFORMS_DE],
+    digestAlgorithm: DIGEST,
+  });
+
+  sig.computeSignature(trimmed, {
+    location: { reference: XPATH_EVE, action: "after" },
+  });
+
+  return sig.getSignedXml();
+}

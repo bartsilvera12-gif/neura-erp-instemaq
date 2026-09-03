@@ -7,6 +7,7 @@ import {
   buildSifenCancelacionPreview,
   normalizePlazoCancelacionHoras,
 } from "@/lib/sifen/sifen-cancelacion-rules";
+import { cancelarDeEnSetServerSide } from "@/lib/sifen/server/cancelar-de-server-side";
 import type { FacturaElectronicaDTO } from "@/lib/sifen/types";
 
 function trimMotivo(raw: unknown): string | null {
@@ -115,6 +116,31 @@ export async function POST(
       );
     }
 
+    // Cancelación REAL ante el SET: se envía el Evento de Cancelación. La factura
+    // solo se marca anulada si el SET ACEPTA. Si rechaza o falla, sigue vigente.
+    const cdc = (feDto.cdc ?? "").trim();
+    if (cdc.length !== 44) {
+      return NextResponse.json(
+        errorResponse("El documento electrónico no tiene CDC válido; no se puede cancelar ante el SET."),
+        { status: 409 }
+      );
+    }
+    const setRes = await cancelarDeEnSetServerSide({
+      supabase,
+      empresaId: auth.empresa_id,
+      cdc,
+      motivo,
+    });
+    if (!setRes.aceptado) {
+      return NextResponse.json(
+        errorResponse(
+          setRes.error ??
+            "El SET no aceptó la cancelación. La factura sigue vigente; podés reintentar."
+        ),
+        { status: 502 }
+      );
+    }
+
     const canceladoEn = new Date().toISOString();
 
     const { data: updatedFe, error: errUp } = await supabase
@@ -147,6 +173,8 @@ export async function POST(
           factura_id: fid,
           motivo,
           cancelado_en: canceladoEn,
+          set_cod_res: setRes.dCodRes,
+          set_msg_res: setRes.dMsgRes,
         },
       })
       .select("id")

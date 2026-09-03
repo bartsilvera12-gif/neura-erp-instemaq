@@ -3,6 +3,7 @@ import { getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { createNotaCreditoBorrador } from "@/lib/nota-credito/create-nota-credito";
+import { emitirNcServerSide } from "@/lib/nota-credito/emitir-nc-server-side";
 import { evaluateNotaCreditoCreationGate } from "@/lib/nota-credito/evaluate-creation-gate";
 import type { NotaCreditoCreateBody, NotaCreditoListItemDTO } from "@/lib/nota-credito/types";
 import { obtenerSifenPrevueloFacturaParaNcs } from "@/lib/nota-credito/pre-vuelo-nc-sifen";
@@ -147,6 +148,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!result.ok) {
       return NextResponse.json(errorResponse(result.error), { status: result.status });
     }
+
+    // Emisión automática al SET en segundo plano (no bloquea la respuesta): firma,
+    // envía el lote y consulta aprobación. Si falla, la NC queda en borrador/enviado
+    // y es reintentable desde el panel. Igual que la facturación al confirmar la venta.
+    void emitirNcServerSide({ auth, supabase, notaCreditoId: result.nota_credito_id });
 
     return NextResponse.json(successResponse({ nota_credito_id: result.nota_credito_id }));
   } catch (e) {
