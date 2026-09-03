@@ -70,10 +70,12 @@ function resultadoDesde(
   const estado = fe?.estado_sifen ?? "borrador";
   const aprobado = estado === "aprobado";
   const reintentable = !aprobado && estado !== "cancelado";
+  // KuDE imprimible desde que está firmado (tiene XML firmado con QR/CDC), salvo
+  // rechazado/cancelado. Coincide con el guard del endpoint /sifen/kude.
   const kudeDisponible =
-    Boolean(fe?.xml_firmado_path?.trim()) ||
     estado === "firmado" ||
     estado === "enviado" ||
+    estado === "en_proceso" ||
     estado === "aprobado";
   return {
     facturaElectronicaId: fe?.id ?? null,

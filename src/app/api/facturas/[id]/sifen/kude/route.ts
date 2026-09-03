@@ -97,8 +97,8 @@ async function loadKudeBranding(
 
 /**
  * GET /api/facturas/[id]/sifen/kude
- * PDF KuDE a partir del XML firmado. Solo si `estado_sifen` = aprobado.
- * Query: `download=1` → Content-Disposition attachment.
+ * PDF KuDE a partir del XML firmado (disponible desde estado "firmado"; no en
+ * rechazado/cancelado). Query: `download=1` → Content-Disposition attachment.
  */
 export async function GET(
   request: NextRequest,
@@ -149,9 +149,16 @@ export async function GET(
       });
     }
 
-    if (String(feRow.estado_sifen) !== "aprobado") {
+    // El KuDE se arma desde el XML firmado (existe desde estado "firmado"), con QR y CDC.
+    // El dProtAut (protocolo de aprobación SET) se completa cuando aprueba; el renderer
+    // lo acepta vacío. Así la factura se puede imprimir al instante y la aprobación llega
+    // en segundo plano. Solo se bloquea si el documento fue rechazado o cancelado.
+    const estadoSifen = String(feRow.estado_sifen);
+    if (estadoSifen === "rechazado" || estadoSifen === "cancelado") {
       return NextResponse.json(
-        errorResponse("El KuDE solo está disponible con SIFEN en estado «aprobado»."),
+        errorResponse(
+          `El KuDE no está disponible: el documento electrónico está ${estadoSifen === "rechazado" ? "rechazado" : "cancelado"}.`
+        ),
         { status: 403 }
       );
     }
