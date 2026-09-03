@@ -118,12 +118,26 @@ function FacturaDetalleInner() {
     };
   }, [id]);
 
+  /**
+   * Imprimir la factura: si tiene documento electrónico con XML firmado
+   * (firmado/enviado/aprobado), abre el KuDE (PDF fiscal, mismo formato que al vender);
+   * si no hay DE (factura no electrónica), imprime la pantalla del detalle.
+   */
+  const imprimirFactura = useCallback(() => {
+    const est = resumen?.factura_electronica?.estado_sifen;
+    if (est === "firmado" || est === "enviado" || est === "aprobado") {
+      window.open(`/api/facturas/${id}/sifen/kude`, "_blank", "noopener");
+    } else {
+      window.print();
+    }
+  }, [resumen, id]);
+
   useEffect(() => {
-    if (searchParams?.get("print") === "1" && factura && !loadingF) {
-      const t = setTimeout(() => window.print(), 400);
+    if (searchParams?.get("print") === "1" && factura && !loadingF && !loadingS) {
+      const t = setTimeout(() => imprimirFactura(), 400);
       return () => clearTimeout(t);
     }
-  }, [searchParams, factura, loadingF]);
+  }, [searchParams, factura, loadingF, loadingS, imprimirFactura]);
 
   if (!id) {
     return null;
@@ -180,10 +194,10 @@ function FacturaDetalleInner() {
         <div className="flex gap-2 print:hidden">
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={imprimirFactura}
             className="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
           >
-            Imprimir
+            Imprimir factura
           </button>
         </div>
       </div>
