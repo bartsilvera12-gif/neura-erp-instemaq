@@ -155,14 +155,9 @@ export async function createNotaCreditoBorrador(p: CreateNotaCreditoParams): Pro
     nowMs: Date.now(),
   });
 
-  if (preview.puede_cancelar) {
-    return {
-      ok: false,
-      status: 409,
-      error:
-        "Todavía podés cancelar el documento electrónico dentro del plazo. Usá «Cancelar factura (DE)» y emití una nueva factura; no corresponde crear nota de crédito.",
-    };
-  }
+  // La nota de crédito se permite mientras el DE esté aprobado, esté o no dentro del
+  // plazo de cancelación. La anulación (cancelar DE) y la NC conviven en el detalle;
+  // el usuario elige. `preview` se sigue calculando para trazabilidad (más abajo).
 
   const montoNc = saldo;
   const esperadoSaldo = Math.max(0, montoFactura - sumaPagos);
