@@ -75,6 +75,11 @@ function postHttpsMtls(
         });
       }
     );
+    // Falla rápido si el SET no responde (evita que el request de cancelación se
+    // cuelgue y el proxy devuelva un HTML de timeout).
+    req.setTimeout(30_000, () => {
+      req.destroy(new Error("Timeout esperando respuesta del SET (eventos, 30s)."));
+    });
     req.on("error", reject);
     req.write(body, "utf8");
     req.end();

@@ -8,13 +8,13 @@ export const SIFEN_WS = {
     recepLote: "https://sifen-test.set.gov.py/de/ws/async/recibe-lote.wsdl",
     consultaLote: "https://sifen-test.set.gov.py/de/ws/consultas/consulta-lote.wsdl",
     recibeSync: "https://sifen-test.set.gov.py/de/ws/sync/recibe.wsdl",
-    recepEvento: "https://sifen-test.set.gov.py/de/ws/eventos/evento.wsdl",
+    recepEvento: "https://sifen-test.set.gov.py/de/ws/eventos/recibe-evento.wsdl",
   },
   produccion: {
     recepLote: "https://sifen.set.gov.py/de/ws/async/recibe-lote.wsdl",
     consultaLote: "https://sifen.set.gov.py/de/ws/consultas/consulta-lote.wsdl",
     recibeSync: "https://sifen.set.gov.py/de/ws/sync/recibe.wsdl",
-    recepEvento: "https://sifen.set.gov.py/de/ws/eventos/evento.wsdl",
+    recepEvento: "https://sifen.set.gov.py/de/ws/eventos/recibe-evento.wsdl",
   },
 } as const satisfies Record<
   AmbienteSifen,
