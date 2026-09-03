@@ -414,16 +414,18 @@ export default function InventarioPage() {
                 className={inputFilterClass}
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Costo promedio</label>
-              <input
-                type="text"
-                placeholder="Ej: 35000"
-                value={filtroPorCosto}
-                onChange={(e) => setFiltroPorCosto(e.target.value)}
-                className={inputFilterClass}
-              />
-            </div>
+            {isAdmin && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Costo promedio</label>
+                <input
+                  type="text"
+                  placeholder="Ej: 35000"
+                  value={filtroPorCosto}
+                  onChange={(e) => setFiltroPorCosto(e.target.value)}
+                  className={inputFilterClass}
+                />
+              </div>
+            )}
             <div>
               <label className="block text-xs text-gray-400 mb-1">Precio venta</label>
               <input
@@ -501,13 +503,15 @@ export default function InventarioPage() {
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-slate-200 bg-slate-50/95 text-[11px] uppercase tracking-wide text-slate-500 backdrop-blur">
                 <th className="py-2.5 pl-4 pr-4 font-semibold">Producto</th>
-                <th className="py-2.5 pr-4 text-right font-semibold">Costo prom.</th>
+                {isAdmin && <th className="py-2.5 pr-4 text-right font-semibold">Costo prom.</th>}
                 <th className="py-2.5 pr-4 text-right font-semibold">Precio venta</th>
-                <th className="py-2.5 pr-4 text-right font-semibold">
-                  <span title="(precio − costo) / precio × 100. El markup sobre costo se ve al pasar el mouse.">
-                    Margen s/venta
-                  </span>
-                </th>
+                {isAdmin && (
+                  <th className="py-2.5 pr-4 text-right font-semibold">
+                    <span title="(precio − costo) / precio × 100. El markup sobre costo se ve al pasar el mouse.">
+                      Margen s/venta
+                    </span>
+                  </th>
+                )}
                 <th className="py-2.5 pr-4 text-right font-semibold">Stock</th>
                 <th className="py-2.5 pr-4 text-center font-semibold">Valuación</th>
                 <th className="w-32 py-2.5 pl-4 pr-4 text-right font-semibold">Acción</th>
@@ -543,30 +547,34 @@ export default function InventarioPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 pr-4 text-right tabular-nums text-gray-700">
-                      {sinCosto ? <span className="text-slate-300">—</span> : formatGs(p.costo_promedio)}
-                    </td>
+                    {isAdmin && (
+                      <td className="py-3 pr-4 text-right tabular-nums text-gray-700">
+                        {sinCosto ? <span className="text-slate-300">—</span> : formatGs(p.costo_promedio)}
+                      </td>
+                    )}
                     <td className="py-3 pr-4 text-right tabular-nums font-medium text-gray-800">
                       {formatGs(p.precio_venta)}
                     </td>
                     {/* Margen: sin costo cargado no se puede calcular (no es 100%) */}
-                    <td className="py-3 pr-4 text-right">
-                      {margen === null ? (
-                        <span
-                          className="text-xs text-slate-400"
-                          title="Falta cargar el costo del producto: sin ese dato no se puede calcular el margen."
-                        >
-                          Sin costo
-                        </span>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset ${margenBadge(margen)}`}
-                          title={markup !== null ? `Equivale a ${markup.toFixed(2)}% de markup sobre el costo` : undefined}
-                        >
-                          {margen.toFixed(1)}%
-                        </span>
-                      )}
-                    </td>
+                    {isAdmin && (
+                      <td className="py-3 pr-4 text-right">
+                        {margen === null ? (
+                          <span
+                            className="text-xs text-slate-400"
+                            title="Falta cargar el costo del producto: sin ese dato no se puede calcular el margen."
+                          >
+                            Sin costo
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset ${margenBadge(margen)}`}
+                            title={markup !== null ? `Equivale a ${markup.toFixed(2)}% de markup sobre el costo` : undefined}
+                          >
+                            {margen.toFixed(1)}%
+                          </span>
+                        )}
+                      </td>
+                    )}
                     {/* Stock + unidad + mínimo, agrupados en una sola columna */}
                     <td className="py-3 pr-4 text-right">
                       <span className={`text-sm font-semibold tabular-nums ${sinStock ? "text-red-600" : stockBajo ? "text-amber-600" : "text-gray-800"}`}>
@@ -604,7 +612,7 @@ export default function InventarioPage() {
               {/* Sin resultados: antes la tabla quedaba en blanco, sin explicación. */}
               {!cargandoLista && productosPagina.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={isAdmin ? 7 : 5} className="py-12 text-center">
                     <p className="text-sm text-slate-500">
                       {todos.length === 0
                         ? "Todavía no cargaste productos."

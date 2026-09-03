@@ -13,6 +13,7 @@ import { generarYAbrirRecibo } from "@/lib/recibos/client";
 import type { TipoIvaVenta, TipoVenta, MonedaVenta, LineaVenta, MetodoPago, TipoPrecioVenta } from "@/lib/ventas/types";
 import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import { productoMatchesQuery } from "@/lib/productos/token-search";
+import { useIsAdmin } from "@/lib/auth/use-is-admin";
 import {
   permiteDecimales, pasoCantidad, clampCantidad,
   formatStockConUnidad,
@@ -171,6 +172,8 @@ export default function NuevaVentaPage() {
 
   // Cliente (opcional). Si se selecciona, se envía cliente_id al crear la venta.
   type ClienteLite = { id: string; label: string; ruc: string | null; usa_nota_remision: boolean };
+  // Perfil sin costos (vendedor): oculta la columna Costo y la ganancia de líneas manuales.
+  const { isAdmin } = useIsAdmin();
   const [clientes, setClientes] = useState<ClienteLite[]>([]);
   const [clienteId, setClienteId] = useState("");
   const [clienteQuery, setClienteQuery] = useState("");
@@ -1333,7 +1336,7 @@ export default function NuevaVentaPage() {
                       <th className="hidden px-3 py-3 text-center md:table-cell">IVA</th>
                       <th className="px-3 py-3 text-center">Cant.</th>
                       <th className="px-3 py-3 text-right">Precio unit.</th>
-                      <th className="px-3 py-3 text-right">Costo</th>
+                      {isAdmin && <th className="px-3 py-3 text-right">Costo</th>}
                       <th className="px-3 py-3 text-right">Stock</th>
                       <th className="px-3 py-3 text-right">Subtotal</th>
                       <th className="w-10 px-2 py-3"></th>
@@ -1442,23 +1445,25 @@ export default function NuevaVentaPage() {
                               className="h-8 w-28 rounded-md border border-slate-200 bg-white px-2 text-right text-sm tabular-nums"
                             />
                           </td>
-                          {/* Costo — solo en trabajos a mano (repuestos + mano de obra) */}
-                          <td className="px-3 py-2.5 text-right">
-                            {item.es_manual ? (
-                              <input
-                                type="number" min={0} value={item.costo_unitario ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  updateItemCampo(idx, { costo_unitario: v === "" ? null : Math.max(0, Number(v) || 0) });
-                                }}
-                                placeholder="0"
-                                title="Cuánto costó el trabajo por unidad (repuestos + mano de obra)"
-                                className="h-8 w-28 rounded-md border border-slate-200 bg-white px-2 text-right text-sm tabular-nums"
-                              />
-                            ) : (
-                              <span className="text-xs text-slate-400">—</span>
-                            )}
-                          </td>
+                          {/* Costo — solo en trabajos a mano (repuestos + mano de obra). Oculto para perfiles sin costos. */}
+                          {isAdmin && (
+                            <td className="px-3 py-2.5 text-right">
+                              {item.es_manual ? (
+                                <input
+                                  type="number" min={0} value={item.costo_unitario ?? ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    updateItemCampo(idx, { costo_unitario: v === "" ? null : Math.max(0, Number(v) || 0) });
+                                  }}
+                                  placeholder="0"
+                                  title="Cuánto costó el trabajo por unidad (repuestos + mano de obra)"
+                                  className="h-8 w-28 rounded-md border border-slate-200 bg-white px-2 text-right text-sm tabular-nums"
+                                />
+                              ) : (
+                                <span className="text-xs text-slate-400">—</span>
+                              )}
+                            </td>
+                          )}
                           {/* Stock */}
                           <td className="px-3 py-2.5 text-right">
                             <span className={`text-xs font-semibold tabular-nums ${!controla ? "text-slate-400" : stockBajo ? "text-red-600" : "text-slate-600"}`}>
@@ -1468,7 +1473,7 @@ export default function NuevaVentaPage() {
                           {/* Subtotal (total de línea) + ganancia si se cargó el costo */}
                           <td className="px-3 py-2.5 text-right">
                             <span className="text-sm font-bold tabular-nums text-slate-900">{formatGs(item.total_linea)}</span>
-                            {item.es_manual && costoLinea > 0 && (
+                            {isAdmin && item.es_manual && costoLinea > 0 && (
                               <p className={`mt-0.5 text-[11px] font-semibold tabular-nums ${gananciaLinea >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                 Ganancia {formatGs(gananciaLinea)}
                               </p>
@@ -1510,8 +1515,8 @@ export default function NuevaVentaPage() {
                       <span>TOTAL</span>
                       <span className="tabular-nums">{formatGs(totalGeneral)}</span>
                     </div>
-                    {/* Ganancia de los trabajos cargados a mano (interno, no sale en la factura). */}
-                    {hayCostoManual && (
+                    {/* Ganancia de los trabajos cargados a mano (interno, no sale en la factura). Oculto para perfiles sin costos. */}
+                    {isAdmin && hayCostoManual && (
                       <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2">
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>Costo de los trabajos</span>
