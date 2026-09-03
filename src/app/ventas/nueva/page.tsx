@@ -997,11 +997,13 @@ export default function NuevaVentaPage() {
       const generaNota = v.genera_nota_remision === true || !!v.nota_remision_numero;
       const ticketUrl = `/api/ventas/${v.id}/ticket?auto=1`;
       const remisionUrl = `/api/ventas/${v.id}/ticket?tipo=remision&auto=1`;
-      // Esta instancia no usa el autoimpresor de facturas: el documento de la
-      // venta es el ticket. La factura electrónica se emite aparte desde SIFEN.
-      const docUrl = ticketUrl;
-      // Se reutiliza la ventana abierta durante el clic. Si el navegador la
-      // bloqueó igual, se intenta abrir ahora como último recurso.
+      // Documento principal: la FACTURA electrónica (KuDE, PDF fiscal con QR) cuando
+      // se emitió el DE y ya hay XML firmado. Si el DE no está listo (modo no-sifen,
+      // o SET aún pendiente/rechazado), cae al ticket interno. Se abre en la ventana
+      // pre-abierta durante el clic para que el navegador NO la bloquee.
+      const fact = resultado.facturacion;
+      const kudeUrl = fact?.kude_disponible && fact.kude_url ? fact.kude_url : null;
+      const docUrl = kudeUrl ?? ticketUrl;
       if (ventanaDoc && !ventanaDoc.closed) {
         try { ventanaDoc.location.replace(docUrl); }
         catch { try { window.open(docUrl, "_blank", "noopener"); } catch {} }
@@ -1009,13 +1011,6 @@ export default function NuevaVentaPage() {
         try { window.open(docUrl, "_blank", "noopener"); } catch {}
       }
       if (generaNota) { try { window.open(remisionUrl, "_blank", "noopener"); } catch {} }
-      // Facturación electrónica (modo 'sifen'): si se emitió el DE y ya hay XML
-      // firmado, abrir el KuDE (PDF fiscal con QR) además del ticket. Si el SET
-      // aún no confirmó, el DE queda reintentable desde el detalle de la factura.
-      const fact = resultado.facturacion;
-      if (fact?.kude_disponible && fact.kude_url) {
-        try { window.open(fact.kude_url, "_blank", "noopener"); } catch {}
-      }
       // Redirige directo al listado de ventas en lugar de mostrar el modal
       // post-venta. El cajero queda libre para registrar otra venta de
       // inmediato. El ticket sigue accesible desde el listado.
