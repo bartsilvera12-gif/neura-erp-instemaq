@@ -87,6 +87,28 @@ function resultadoDesde(
   };
 }
 
+/**
+ * Envía el lote al SET y consulta el resultado, en segundo plano (no se espera).
+ * Corre después de responder al cajero. Cualquier fallo deja el DE en su último
+ * estado bueno (firmado/error_envio), reintentable desde el panel de la factura.
+ */
+async function enviarYConsultarEnSegundoPlano(
+  auth: UsuarioConEmpresa,
+  supabase: AppSupabaseClient,
+  facturaId: string
+): Promise<void> {
+  try {
+    const envio = await llamarHandler(handleSifenEnviarPost, auth, supabase, facturaId);
+    if (!envio.success) return; // error_envio: reintentable
+    const estado = String(envio.data?.factura_electronica?.estado_sifen ?? "");
+    if (estado === "enviado") {
+      await llamarHandler(handleSifenConsultaLotePost, auth, supabase, facturaId);
+    }
+  } catch (e) {
+    console.error("[emitirDE bg] enviar/consulta:", e instanceof Error ? e.message : e);
+  }
+}
+
 export async function emitirDeFacturaServerSide(args: {
   auth: UsuarioConEmpresa;
   supabase: AppSupabaseClient;
@@ -124,21 +146,13 @@ export async function emitirDeFacturaServerSide(args: {
 
     if (!sync) return resultadoDesde(fe, null);
 
-    // 4) Enviar al SET (firmado → enviado | error_envio)
+    // Factura al instante: el KuDE ya está listo (firmado). El envío al SET + la
+    // consulta de aprobación corren en SEGUNDO PLANO (no se esperan) para no hacer
+    // esperar al cajero por la red del SET. La aprobación queda visible luego en el
+    // detalle de la factura; si el envío falla, el DE queda reintentable.
     if (estado === "firmado") {
-      const envio = await llamarHandler(handleSifenEnviarPost, auth, supabase, facturaId);
-      if (envio.data?.factura_electronica) fe = envio.data.factura_electronica;
-      if (!envio.success) return resultadoDesde(fe, envio.error ?? "El SET no aceptó el envío del lote.");
-      estado = String(fe?.estado_sifen ?? "");
+      void enviarYConsultarEnSegundoPlano(auth, supabase, facturaId);
     }
-
-    // 5) Consulta-lote best-effort (enviado → aprobado | rechazado | sigue enviado)
-    if (estado === "enviado") {
-      const consulta = await llamarHandler(handleSifenConsultaLotePost, auth, supabase, facturaId);
-      if (consulta.data?.factura_electronica) fe = consulta.data.factura_electronica;
-      // No es error si sigue "enviado": el SET puede tardar; queda reintentable.
-    }
-
     return resultadoDesde(fe, null);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error inesperado al emitir el documento electrónico.";
