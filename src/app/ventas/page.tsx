@@ -134,6 +134,25 @@ function ResumenProductos({ v }: { v: Venta }) {
   );
 }
 
+/** Etiqueta + color para el estado SIFEN de la factura en el listado. */
+function sifenMini(estado: string | null | undefined): { label: string; cls: string } | null {
+  if (!estado) return null;
+  switch (estado) {
+    case "aprobado":
+      return { label: "Aprobada", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
+    case "rechazado":
+    case "error_envio":
+      return { label: "Rechazada", cls: "bg-rose-50 text-rose-700 ring-rose-200" };
+    case "cancelado":
+      return { label: "Cancelada", cls: "bg-slate-100 text-slate-600 ring-slate-200" };
+    case "firmado":
+    case "enviado":
+      return { label: "En proceso", cls: "bg-sky-50 text-sky-700 ring-sky-200" };
+    default:
+      return { label: "Pendiente", cls: "bg-amber-50 text-amber-700 ring-amber-200" };
+  }
+}
+
 /** Determina qué mostrar en la celda IVA cuando hay múltiples ítems. */
 function ivaResumen(v: Venta): string {
   const tipos = [...new Set(v.items.map((i) => i.tipo_iva))];
@@ -319,7 +338,7 @@ export default function VentasPage() {
                 <th className="py-3 pr-4 font-medium">Tipo</th>
                 <th className="py-3 pr-4 font-medium">Pago</th>
                 <th className="py-3 pr-4 font-medium">Fecha</th>
-                <th className="py-3 font-medium text-center">Ticket</th>
+                <th className="py-3 font-medium text-center">Factura</th>
               </tr>
             </thead>
             <tbody>
@@ -375,15 +394,35 @@ export default function VentasPage() {
                         {formatFecha(v.fecha)}
                       </td>
                       <td className="py-4 text-center align-middle">
-                        <a
-                          href={`/api/ventas/${v.id}/ticket`}
-                          target="_blank"
-                          rel="noopener"
-                          className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
-                          title="Abrir comandas + ticket cliente"
-                        >
-                          Imprimir
-                        </a>
+                        {v.factura_numero && v.factura_id ? (
+                          <Link
+                            href={`/facturas/${v.factura_id}`}
+                            className="inline-flex flex-col items-center gap-1"
+                            title="Ver detalle de la factura"
+                          >
+                            <span className="font-mono text-xs font-semibold text-[#0EA5E9] hover:underline">
+                              {v.factura_numero}
+                            </span>
+                            {(() => {
+                              const m = sifenMini(v.factura_estado_sifen);
+                              return m ? (
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${m.cls}`}>
+                                  {m.label}
+                                </span>
+                              ) : null;
+                            })()}
+                          </Link>
+                        ) : (
+                          <a
+                            href={`/api/ventas/${v.id}/ticket`}
+                            target="_blank"
+                            rel="noopener"
+                            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                            title="Abrir comandas + ticket cliente"
+                          >
+                            Imprimir
+                          </a>
+                        )}
                       </td>
                     </tr>
                   );

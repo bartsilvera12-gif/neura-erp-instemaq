@@ -93,4 +93,13 @@ export interface Venta {
 
   /** Nombre del usuario que registró la venta (auditoría). */
   usuario_nombre?: string | null;
+
+  /** Factura asociada (si la venta se facturó). Para acceder al detalle desde el listado. */
+  factura_id?: string | null;
+  /** Número de factura (ej. FAC-000003). */
+  factura_numero?: string | null;
+  /** Estado comercial de la factura (Pendiente/Pagado/Anulado). */
+  factura_estado?: string | null;
+  /** Estado del documento electrónico SIFEN (aprobado/rechazado/…). */
+  factura_estado_sifen?: string | null;
 }

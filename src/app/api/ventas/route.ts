@@ -16,6 +16,7 @@ interface VentaRow {
   tipo_venta: string;
   plazo_dias: number | null;
   fecha: string;
+  factura_id: string | null;
 }
 
 interface VentaItemRow {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
     const ventasQ = await ctx.supabase
       .from("ventas")
       .select(
-        "id, empresa_id, numero_control, moneda, tipo_cambio, subtotal, monto_iva, total, tipo_venta, plazo_dias, metodo_pago, fecha"
+        "id, empresa_id, numero_control, moneda, tipo_cambio, subtotal, monto_iva, total, tipo_venta, plazo_dias, metodo_pago, fecha, factura_id"
       )
       .eq("empresa_id", empresaId)
       .order("fecha", { ascending: false })
@@ -86,12 +87,46 @@ export async function GET(request: NextRequest) {
       byVenta.set(row.venta_id, list);
     }
 
+    // Factura asociada (número + estado + estado SIFEN) para mostrar/acceder desde el listado.
+    const facturaIds = Array.from(
+      new Set(ventasRows.map((r) => r.factura_id).filter((v): v is string => Boolean(v)))
+    );
+    const facturaById = new Map<string, { numero: string; estado: string }>();
+    const sifenByFactura = new Map<string, string>();
+    if (facturaIds.length > 0) {
+      const facQ = await ctx.supabase
+        .from("facturas")
+        .select("id, numero_factura, estado")
+        .eq("empresa_id", empresaId)
+        .in("id", facturaIds);
+      if (!facQ.error && Array.isArray(facQ.data)) {
+        for (const f of facQ.data as { id?: string; numero_factura?: string; estado?: string }[]) {
+          if (f.id) facturaById.set(f.id, { numero: f.numero_factura ?? "", estado: f.estado ?? "" });
+        }
+      }
+      const feQ = await ctx.supabase
+        .from("factura_electronica")
+        .select("factura_id, estado_sifen")
+        .eq("empresa_id", empresaId)
+        .in("factura_id", facturaIds);
+      if (!feQ.error && Array.isArray(feQ.data)) {
+        for (const fe of feQ.data as { factura_id?: string; estado_sifen?: string }[]) {
+          if (fe.factura_id && fe.estado_sifen != null) sifenByFactura.set(fe.factura_id, String(fe.estado_sifen));
+        }
+      }
+    }
+
     const ventas: Venta[] = ventasRows.map((r) => {
       const lineRows = byVenta.get(r.id) ?? [];
+      const fac = r.factura_id ? facturaById.get(r.factura_id) : undefined;
       return {
         id: r.id,
         numero_control: r.numero_control,
         items: mapItems(lineRows),
+        factura_id: r.factura_id ?? null,
+        factura_numero: fac?.numero ?? null,
+        factura_estado: fac?.estado ?? null,
+        factura_estado_sifen: r.factura_id ? sifenByFactura.get(r.factura_id) ?? null : null,
         moneda: r.moneda === "USD" ? "USD" : "GS",
         tipo_cambio: num(r.tipo_cambio),
         subtotal: num(r.subtotal),
