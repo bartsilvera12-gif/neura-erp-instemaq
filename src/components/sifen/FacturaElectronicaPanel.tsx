@@ -650,7 +650,7 @@ export function FacturaElectronicaPanel({
                     type="button"
                     disabled={busy}
                     onClick={() => void runConsultaLote()}
-                    className="text-sm font-medium text-slate-600 hover:text-slate-900 underline-offset-2 hover:underline disabled:opacity-40"
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-semibold shadow-sm disabled:opacity-45 disabled:cursor-not-allowed hover:bg-slate-50"
                   >
                     {action === "consulta-lote" ? "Consultando…" : "Consultar lote"}
                   </button>
