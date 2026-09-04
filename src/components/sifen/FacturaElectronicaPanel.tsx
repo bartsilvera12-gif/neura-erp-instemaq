@@ -234,8 +234,10 @@ export function FacturaElectronicaPanel({
       }
 
       // La cancelación se envía al SET en segundo plano (evita el timeout de la
-      // función). Consultamos el resumen hasta ver el resultado real: cancelado, o
-      // rechazo con el mensaje del SET.
+      // función). Cerramos el modal de inmediato; el resultado real se muestra en el
+      // panel: cancelado, o rechazo con el mensaje del SET.
+      setCancelModal(null);
+      setMotivoCancel("");
       setFlash({ kind: "ok", text: "Cancelación enviada al SET, confirmando…" });
       const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
       for (let intento = 0; intento < 12; intento++) {
@@ -244,8 +246,6 @@ export function FacturaElectronicaPanel({
         const estado = String(r?.factura_electronica?.estado_sifen ?? "");
         if (estado === "cancelado") {
           setFlash({ kind: "ok", text: "Factura anulada: el SET confirmó la cancelación." });
-          setCancelModal(null);
-          setMotivoCancel("");
           await onComercialUpdated?.();
           if (reemitirTrasOk && clienteId.trim()) {
             router.push(`/clientes/${encodeURIComponent(clienteId.trim())}`);
@@ -944,11 +944,13 @@ export function FacturaElectronicaPanel({
             <h4 id="sifen-cancel-title" className="text-sm font-bold text-slate-900">
               {cancelModal === "reemitir"
                 ? "Cancelar documento y continuar en cliente"
-                : "Cancelar documento electrónico (ERP)"}
+                : "Cancelar documento electrónico (SET)"}
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Se registrará la cancelación lógica del DE, la factura comercial pasará a{" "}
-              <span className="font-semibold">Anulado</span> y quedará trazabilidad. No se elimina ningún registro.
+              Se enviará el <span className="font-semibold">evento de cancelación al SET</span>. Solo si el SET lo{" "}
+              <span className="font-semibold">acepta</span>, la factura comercial pasará a{" "}
+              <span className="font-semibold">Anulado</span>. El envío se procesa en segundo plano y verás el
+              resultado en unos segundos. No se elimina ningún registro.
               {cancelModal === "reemitir" ? " Luego podés emitir una nueva factura desde la ficha del cliente." : ""}
             </p>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
