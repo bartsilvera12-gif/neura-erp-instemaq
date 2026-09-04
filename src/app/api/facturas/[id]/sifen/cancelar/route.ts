@@ -10,11 +10,9 @@ import {
 import { cancelarDeEnSetServerSide } from "@/lib/sifen/server/cancelar-de-server-side";
 import type { FacturaElectronicaDTO } from "@/lib/sifen/types";
 
-// La cancelación espera la respuesta del SET de forma síncrona (mTLS al endpoint
-// de eventos). Sin esto, Vercel corta la función a ~10-15s y devuelve un HTML de
-// timeout que el frontend no puede parsear como JSON ("Unexpected token '<'").
-export const runtime = "nodejs";
-export const maxDuration = 60;
+// Sin exports de maxDuration/runtime: la implementación de referencia que funciona
+// en producción no los usa. En un plan que no soporta maxDuration=60, ese export
+// puede romper la función y devolver 502 en runtime.
 
 function trimMotivo(raw: unknown): string | null {
   if (raw == null) return null;

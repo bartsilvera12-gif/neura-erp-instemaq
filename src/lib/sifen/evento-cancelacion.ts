@@ -248,10 +248,6 @@ function postHttpsMtls(
         );
       }
     );
-    // Red de seguridad ante un cuelgue: devolver error antes del cap de la función.
-    req.setTimeout(20_000, () => {
-      req.destroy(new Error("Timeout esperando respuesta del SET (eventos, 20s)."));
-    });
     req.on("error", reject);
     req.write(body, "utf8");
     req.end();
