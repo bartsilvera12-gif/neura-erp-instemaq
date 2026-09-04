@@ -10,6 +10,12 @@ import {
 import { cancelarDeEnSetServerSide } from "@/lib/sifen/server/cancelar-de-server-side";
 import type { FacturaElectronicaDTO } from "@/lib/sifen/types";
 
+// La cancelación espera la respuesta del SET de forma síncrona (mTLS al endpoint
+// de eventos). Sin esto, Vercel corta la función a ~10-15s y devuelve un HTML de
+// timeout que el frontend no puede parsear como JSON ("Unexpected token '<'").
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 function trimMotivo(raw: unknown): string | null {
   if (raw == null) return null;
   const s = String(raw).trim();
