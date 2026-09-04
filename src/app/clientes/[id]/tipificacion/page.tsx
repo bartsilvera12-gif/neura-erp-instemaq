@@ -150,8 +150,8 @@ export default function TipificacionPage() {
 
       {/* ── Breadcrumb ────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 text-xs text-gray-400">
-        <button onClick={() => router.push("/gestion-clientes")} className="hover:text-gray-600 transition-colors">
-          Gestión de clientes
+        <button onClick={() => router.push("/clientes")} className="hover:text-gray-600 transition-colors">
+          Clientes
         </button>
         <span>›</span>
         <button onClick={() => router.push(`/clientes/${id}`)} className="hover:text-gray-600 transition-colors">
