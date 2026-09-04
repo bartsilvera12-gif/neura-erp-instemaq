@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getProveedores } from "@/lib/proveedores/storage";
+import { fetchWithSupabaseSession } from "@/lib/api/fetch-with-supabase-session";
 import ExportExcelButton from "@/components/ui/ExportExcelButton";
 import ImportExcelButton from "@/components/ui/ImportExcelButton";
 import { useIsAdmin } from "@/lib/auth/use-is-admin";
@@ -14,6 +15,27 @@ export default function ProveedoresPage() {
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [borrandoId, setBorrandoId] = useState<string | null>(null);
+  const [msgError, setMsgError] = useState<string | null>(null);
+
+  async function handleBorrar(p: Proveedor) {
+    if (!window.confirm(`¿Borrar el proveedor "${p.nombre}"? Esta acción no se puede deshacer.`)) return;
+    setBorrandoId(p.id);
+    setMsgError(null);
+    try {
+      const res = await fetchWithSupabaseSession(`/api/proveedores/${p.id}`, { method: "DELETE" });
+      const j = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok || !j.success) {
+        setMsgError(j.error ?? "No se pudo borrar el proveedor.");
+        return;
+      }
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      setMsgError(e instanceof Error ? e.message : "Error de red al borrar.");
+    } finally {
+      setBorrandoId(null);
+    }
+  }
 
   useEffect(() => {
     let cancel = false;
@@ -84,6 +106,12 @@ export default function ProveedoresPage() {
           </span>
         </div>
 
+        {msgError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {msgError}
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -134,12 +162,22 @@ export default function ProveedoresPage() {
                       </span>
                     </td>
                     <td className="py-3">
-                      <Link
-                        href={`/proveedores/${p.id}/editar`}
-                        className="text-sm font-medium text-sky-600 hover:underline"
-                      >
-                        Editar
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/proveedores/${p.id}/editar`}
+                          className="text-sm font-medium text-sky-600 hover:underline"
+                        >
+                          Editar
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => void handleBorrar(p)}
+                          disabled={borrandoId === p.id}
+                          className="text-sm font-medium text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          {borrandoId === p.id ? "Borrando…" : "Borrar"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

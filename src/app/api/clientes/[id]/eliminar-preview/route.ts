@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdmin } from "@/lib/middleware/auth";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { getTenantSupabaseFromAuthWithRol } from "@/lib/supabase/tenant-api";
@@ -20,9 +19,9 @@ export async function GET(
     }
     const { auth, supabase } = ctx;
 
-    if (!isAdmin(auth)) {
-      return NextResponse.json(errorResponse("Solo administradores pueden consultar la eliminación de clientes"), { status: 403 });
-    }
+    // Preview necesaria para habilitar el botón de eliminar. Los vendedores también
+    // pueden eliminar clientes (la anulación de facturas al borrar sigue siendo solo
+    // admin, controlada en el endpoint DELETE).
 
     const { id: clienteId } = await params;
     if (!clienteId) {

@@ -11,8 +11,8 @@ export const EMPRESA_DOC = {
   telefono: "",
   email: "",
   direccion: [] as string[],
-  /** Logo del cliente. Servido desde /public. */
-  logoUrl: "/brand/instemaq-logo.jpeg",
+  /** Logo del cliente. Servido desde /public. PNG (el .jpeg no renderizaba en los documentos). */
+  logoUrl: "/brand/instemaq-logo.png",
 };
 
 function esc(v: unknown): string {
