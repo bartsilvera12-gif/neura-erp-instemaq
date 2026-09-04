@@ -8,15 +8,15 @@ import type { AppSupabaseClient } from "@/lib/supabase/schema";
 import { decryptSecret } from "@/lib/sifen/security";
 import { downloadSifenCertificadoObject } from "@/lib/sifen/sifen-certificados-storage";
 import { parseAmbiente } from "@/lib/sifen/config-validation";
-import { buildEventoCancelacionXml } from "@/lib/sifen/evento-cancelacion-xml";
-import { signSifenEventoXml, extractKeyAndCertFromP12 } from "@/lib/sifen/sign-xml";
-import { enviarEventoCancelacionSifen } from "@/lib/sifen/enviar-evento-sifen";
+import { enviarEventoCancelacionSifen } from "@/lib/sifen/evento-cancelacion";
 
 export interface CancelarDeSetResult {
   /** true si el proceso corrió sin excepción (no implica aceptación). */
   ok: boolean;
-  /** true si el SET ACEPTÓ la cancelación. */
+  /** true si el SET ACEPTÓ la cancelación (registrada ahora o ya lo estaba). */
   aceptado: boolean;
+  /** true si el SET respondió que el CDC ya tenía el evento (4003): ya cancelado. */
+  yaEstabaCancelado: boolean;
   dCodRes: string | null;
   dMsgRes: string | null;
   error: string | null;
@@ -26,7 +26,16 @@ export interface CancelarDeSetResult {
 }
 
 function fail(error: string): CancelarDeSetResult {
-  return { ok: false, aceptado: false, dCodRes: null, dMsgRes: null, error, httpStatus: null, rawResponse: null };
+  return {
+    ok: false,
+    aceptado: false,
+    yaEstabaCancelado: false,
+    dCodRes: null,
+    dMsgRes: null,
+    error,
+    httpStatus: null,
+    rawResponse: null,
+  };
 }
 
 export async function cancelarDeEnSetServerSide(args: {
@@ -67,31 +76,31 @@ export async function cancelarDeEnSetServerSide(args: {
     const p12 = await downloadSifenCertificadoObject(supabase, certPath);
     if (!p12.ok) return fail(`No se pudo descargar el certificado .p12: ${p12.message}`);
 
-    const material = extractKeyAndCertFromP12(p12.data, password);
-
     const eventoId = Number(BigInt(Date.now()) % BigInt("999999999")) || 1;
-    const xml = buildEventoCancelacionXml({ cdc, motivo, eventoId });
-    const firmado = signSifenEventoXml(xml, material);
 
+    // build + firma + envío (endpoint evento.wsdl, SOAP 1.2 application/soap+xml).
     const res = await enviarEventoCancelacionSifen({
-      rGesEveFirmado: firmado,
       ambiente,
+      cdc,
+      motivo,
       certificadoP12: p12.data,
       certificadoPassword: password,
+      dId: eventoId,
     });
 
-    const rawResponse = (res.cuerpoSoapCrudo ?? "").slice(0, 800);
+    const rawResponse = (res.cuerpoSoapCrudo ?? "").slice(0, 800) || null;
     const errBase = res.dMsgRes?.trim()
       ? res.dMsgRes.trim()
       : `El SET no aceptó la cancelación (código ${res.dCodRes ?? "sin código"}, HTTP ${res.httpStatus}).`;
     return {
       ok: true,
-      aceptado: res.aceptado,
+      aceptado: res.cancelado,
+      yaEstabaCancelado: res.yaEstabaCancelado,
       dCodRes: res.dCodRes,
       dMsgRes: res.dMsgRes,
       httpStatus: res.httpStatus,
-      rawResponse: rawResponse || null,
-      error: res.aceptado ? null : errBase,
+      rawResponse,
+      error: res.cancelado ? null : errBase,
     };
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Error al enviar la cancelación al SET.");
