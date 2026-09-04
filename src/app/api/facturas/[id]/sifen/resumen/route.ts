@@ -19,6 +19,12 @@ export type FacturaSifenResumenData = {
   sifen_plazo_cancelacion_horas: number;
   factura_electronica: FacturaElectronicaDTO | null;
   cancelacion: SifenCancelacionPreviewDTO | null;
+  /** Último intento de cancelación ante el SET (aceptado o rechazado con su mensaje). */
+  ultima_cancelacion: {
+    tipo: string;
+    detalle: Record<string, unknown> | null;
+    created_at: string;
+  } | null;
 };
 
 /**
@@ -134,6 +140,30 @@ export async function GET(
           })
         : null;
 
+    let ultima_cancelacion: FacturaSifenResumenData["ultima_cancelacion"] = null;
+    if (feDto) {
+      const { data: ev } = await supabase
+        .from("factura_electronica_evento")
+        .select("tipo, detalle, created_at")
+        .eq("factura_electronica_id", feDto.id)
+        .eq("empresa_id", auth.empresa_id)
+        .in("tipo", ["cancelacion", "cancelacion_rechazada"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (ev) {
+        const row = ev as { tipo?: unknown; detalle?: unknown; created_at?: unknown };
+        ultima_cancelacion = {
+          tipo: String(row.tipo ?? ""),
+          detalle:
+            row.detalle != null && typeof row.detalle === "object"
+              ? (row.detalle as Record<string, unknown>)
+              : null,
+          created_at: String(row.created_at ?? ""),
+        };
+      }
+    }
+
     const payload: FacturaSifenResumenData = {
       sifen_config_exists,
       sifen_config_activa,
@@ -141,6 +171,7 @@ export async function GET(
       sifen_plazo_cancelacion_horas,
       factura_electronica: feDto,
       cancelacion,
+      ultima_cancelacion,
     };
 
     return NextResponse.json(successResponse(payload), {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getFacturasSupabaseFromAuth } from "@/lib/facturacion/facturas-service-client";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
@@ -131,108 +131,92 @@ export async function POST(
         { status: 409 }
       );
     }
-    const setRes = await cancelarDeEnSetServerSide({
-      supabase,
-      empresaId: auth.empresa_id,
-      cdc,
-      motivo,
+
+    // El envío del evento al SET (mTLS + firma) corre EN SEGUNDO PLANO con `after()`,
+    // igual que la facturación. Así la respuesta HTTP vuelve al instante y nunca se
+    // corta por timeout de la función (que devolvía un HTML → "Unexpected token '<'").
+    // El frontend consulta /sifen/resumen para ver el resultado (cancelado o el
+    // mensaje del SET). La factura solo se marca Anulada si el SET ACEPTA.
+    const empresaId = auth.empresa_id;
+    const feId = feDto.id;
+    after(async () => {
+      try {
+        const setRes = await cancelarDeEnSetServerSide({ supabase, empresaId, cdc, motivo });
+        const nowIso = new Date().toISOString();
+
+        if (setRes.aceptado) {
+          const { error: errUp } = await supabase
+            .from("factura_electronica")
+            .update({
+              estado_sifen: "cancelado",
+              sifen_cancelado_at: nowIso,
+              sifen_cancelacion_motivo: motivo,
+              error: null,
+            })
+            .eq("id", feId)
+            .eq("empresa_id", empresaId);
+          if (errUp) console.error("[cancelar bg] update FE cancelado:", errUp.message);
+
+          const { error: errEv } = await supabase.from("factura_electronica_evento").insert({
+            empresa_id: empresaId,
+            factura_electronica_id: feId,
+            tipo: "cancelacion",
+            detalle: {
+              origen: "api_cancelar",
+              factura_id: fid,
+              motivo,
+              cancelado_en: nowIso,
+              estado: "aceptado",
+              set_cod_res: setRes.dCodRes,
+              set_msg_res: setRes.dMsgRes,
+            },
+          });
+          if (errEv) console.error("[cancelar bg] insert evento cancelacion:", errEv.message);
+
+          const { error: errFactura } = await supabase
+            .from("facturas")
+            .update({ estado: "Anulado", saldo: 0 })
+            .eq("id", fid)
+            .eq("empresa_id", empresaId);
+          if (errFactura) console.error("[cancelar bg] update factura Anulado:", errFactura.message);
+
+          console.log(`[cancelar bg] FAC ${fid} anulada en SET (cod ${setRes.dCodRes ?? "?"}).`);
+        } else {
+          // Rechazo/fallo: la factura NO se toca (sigue vigente). Se registra el
+          // evento con la respuesta del SET para que el frontend lo muestre y se
+          // pueda afinar el formato del evento / reintentar.
+          const { error: errEv } = await supabase.from("factura_electronica_evento").insert({
+            empresa_id: empresaId,
+            factura_electronica_id: feId,
+            tipo: "cancelacion_rechazada",
+            detalle: {
+              origen: "api_cancelar",
+              factura_id: fid,
+              motivo,
+              rechazado_en: nowIso,
+              estado: "rechazado",
+              set_cod_res: setRes.dCodRes,
+              set_msg_res: setRes.dMsgRes,
+              error: setRes.error,
+            },
+          });
+          if (errEv) console.error("[cancelar bg] insert evento rechazada:", errEv.message);
+          console.warn(
+            `[cancelar bg] FAC ${fid} NO cancelada. cod=${setRes.dCodRes ?? "?"} msg=${setRes.dMsgRes ?? setRes.error ?? "?"}`
+          );
+        }
+      } catch (e) {
+        console.error("[cancelar bg] error inesperado:", e instanceof Error ? e.message : e);
+      }
     });
-    if (!setRes.aceptado) {
-      return NextResponse.json(
-        errorResponse(
-          setRes.error ??
-            "El SET no aceptó la cancelación. La factura sigue vigente; podés reintentar."
-        ),
-        { status: 502 }
-      );
-    }
 
-    const canceladoEn = new Date().toISOString();
-
-    const { data: updatedFe, error: errUp } = await supabase
-      .from("factura_electronica")
-      .update({
-        estado_sifen: "cancelado",
-        sifen_cancelado_at: canceladoEn,
-        sifen_cancelacion_motivo: motivo,
-      })
-      .eq("id", feDto.id)
-      .eq("empresa_id", auth.empresa_id)
-      .select()
-      .single();
-
-    if (errUp || !updatedFe) {
-      return NextResponse.json(
-        errorResponse(errUp?.message ?? "No se pudo actualizar factura_electronica."),
-        { status: 500 }
-      );
-    }
-
-    const { data: evInsert, error: errEv } = await supabase
-      .from("factura_electronica_evento")
-      .insert({
-        empresa_id: auth.empresa_id,
-        factura_electronica_id: feDto.id,
-        tipo: "cancelacion",
-        detalle: {
-          origen: "api_cancelar",
-          factura_id: fid,
-          motivo,
-          cancelado_en: canceladoEn,
-          set_cod_res: setRes.dCodRes,
-          set_msg_res: setRes.dMsgRes,
-        },
-      })
-      .select("id")
-      .single();
-
-    if (errEv || !evInsert) {
-      await supabase
-        .from("factura_electronica")
-        .update({
-          estado_sifen: feDto.estado_sifen,
-          sifen_cancelado_at: feDto.sifen_cancelado_at,
-          sifen_cancelacion_motivo: feDto.sifen_cancelacion_motivo,
-        })
-        .eq("id", feDto.id)
-        .eq("empresa_id", auth.empresa_id);
-      return NextResponse.json(
-        errorResponse(`No se pudo registrar el evento; se revirtió el estado: ${errEv?.message ?? "error"}`),
-        { status: 500 }
-      );
-    }
-
-    const { error: errFactura } = await supabase
-      .from("facturas")
-      .update({ estado: "Anulado", saldo: 0 })
-      .eq("id", fid)
-      .eq("empresa_id", auth.empresa_id);
-
-    if (errFactura) {
-      await supabase
-        .from("factura_electronica")
-        .update({
-          estado_sifen: feDto.estado_sifen,
-          sifen_cancelado_at: feDto.sifen_cancelado_at,
-          sifen_cancelacion_motivo: feDto.sifen_cancelacion_motivo,
-        })
-        .eq("id", feDto.id)
-        .eq("empresa_id", auth.empresa_id);
-      await supabase.from("factura_electronica_evento").delete().eq("id", (evInsert as { id: string }).id);
-      return NextResponse.json(
-        errorResponse(
-          `No se pudo anular la factura comercial (${errFactura.message}); se revirtió la cancelación del DE.`
-        ),
-        { status: 500 }
-      );
-    }
-
-    const dto = toFacturaElectronicaDto(updatedFe as Record<string, unknown>);
-    const data: { factura_electronica: FacturaElectronicaDTO } = {
-      factura_electronica: dto,
+    const data: { pendiente: true; factura_electronica: FacturaElectronicaDTO } = {
+      pendiente: true,
+      factura_electronica: feDto,
     };
 
-    return NextResponse.json(successResponse(data));
+    // 202: aceptado para procesamiento; el resultado real se consulta por /resumen.
+    return NextResponse.json(successResponse(data), { status: 202 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error";
     return NextResponse.json(errorResponse(msg), { status: 500 });
