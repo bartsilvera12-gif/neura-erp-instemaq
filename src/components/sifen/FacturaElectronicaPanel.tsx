@@ -220,56 +220,40 @@ export function FacturaElectronicaPanel({
       return;
     }
     setAction("cancelar-de");
-    const startedAt = Date.now();
+    // Cerramos el modal de inmediato; el resultado real del SET se muestra en el panel.
+    setCancelModal(null);
+    setMotivoCancel("");
+    setFlash({ kind: "ok", text: "Enviando cancelación al SET…" });
     try {
       const res = await fetchWithSupabaseSession(`/api/facturas/${facturaId}/sifen/cancelar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ motivo: m }),
       });
-      const j = (await res.json()) as { success?: boolean; error?: string };
-      if (!res.ok || !j.success) {
-        setFlash({ kind: "err", text: j.error ?? `Error ${res.status}` });
+      // Leemos como texto y parseamos con cuidado: si el gateway devolviera HTML,
+      // mostramos un error legible en vez de romper el JSON.parse.
+      const raw = await res.text();
+      let j: { success?: boolean; error?: string } = {};
+      try {
+        j = raw ? (JSON.parse(raw) as { success?: boolean; error?: string }) : {};
+      } catch {
+        setFlash({
+          kind: "err",
+          text: `El servidor devolvió una respuesta inesperada (HTTP ${res.status}). Reintentá en unos segundos.`,
+        });
         return;
       }
-
-      // La cancelación se envía al SET en segundo plano (evita el timeout de la
-      // función). Cerramos el modal de inmediato; el resultado real se muestra en el
-      // panel: cancelado, o rechazo con el mensaje del SET.
-      setCancelModal(null);
-      setMotivoCancel("");
-      setFlash({ kind: "ok", text: "Cancelación enviada al SET, confirmando…" });
-      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-      for (let intento = 0; intento < 12; intento++) {
-        await sleep(3000);
-        const r = await refresh();
-        const estado = String(r?.factura_electronica?.estado_sifen ?? "");
-        if (estado === "cancelado") {
-          setFlash({ kind: "ok", text: "Factura anulada: el SET confirmó la cancelación." });
-          await onComercialUpdated?.();
-          if (reemitirTrasOk && clienteId.trim()) {
-            router.push(`/clientes/${encodeURIComponent(clienteId.trim())}`);
-          }
-          return;
-        }
-        const uc = r?.ultima_cancelacion;
-        const ucFresca =
-          uc != null && !!uc.created_at && new Date(uc.created_at).getTime() >= startedAt - 3000;
-        if (ucFresca && uc.tipo === "cancelacion_rechazada") {
-          const det = uc.detalle ?? {};
-          const cod = det.set_cod_res ? ` (código ${String(det.set_cod_res)})` : "";
-          const msg = String(det.set_msg_res ?? det.error ?? "El SET no aceptó la cancelación.");
-          setFlash({
-            kind: "err",
-            text: `El SET no aceptó la cancelación${cod}: ${msg}. La factura sigue vigente; podés reintentar.`,
-          });
-          return;
-        }
+      if (!res.ok || !j.success) {
+        setFlash({ kind: "err", text: j.error ?? `Error ${res.status}` });
+        await refresh();
+        return;
       }
-      setFlash({
-        kind: "ok",
-        text: "Cancelación en proceso. Actualizá el detalle en unos segundos para ver el resultado del SET.",
-      });
+      setFlash({ kind: "ok", text: "Factura anulada: el SET confirmó la cancelación." });
+      await refresh();
+      await onComercialUpdated?.();
+      if (reemitirTrasOk && clienteId.trim()) {
+        router.push(`/clientes/${encodeURIComponent(clienteId.trim())}`);
+      }
     } catch (e) {
       setFlash({ kind: "err", text: e instanceof Error ? e.message : "Error de red" });
     } finally {
