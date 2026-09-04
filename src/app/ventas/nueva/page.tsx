@@ -65,6 +65,16 @@ function precioPorTipo(p: Producto, tipo: TipoPrecioVenta): number {
   return p.precio_venta;
 }
 
+/** Muestra vacío cuando es 0 y sin ceros a la izquierda (evita el "0" pegado en inputs numéricos). */
+function numInput(n: number): string {
+  return !n || Number.isNaN(n) ? "" : String(n);
+}
+/** Parsea un input numérico entero quitando ceros a la izquierda; vacío/inválido → 0. */
+function parseNumInput(s: string): number {
+  const d = String(s).replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+  return d === "" ? 0 : Number(d);
+}
+
 /** Tipos de precio ofrecidos en la UI (sin 'costo', que queda solo como histórico). */
 const TIPOS_PRECIO_UI: TipoPrecioVenta[] = ["minorista", "mayorista", "distribuidor"];
 
@@ -1435,8 +1445,8 @@ export default function NuevaVentaPage() {
                           {/* Precio unitario editable */}
                           <td className="px-3 py-2.5 text-right">
                             <input
-                              type="number" min={0} value={item.precio_venta}
-                              onChange={(e) => updateItemCampo(idx, { precio_venta: Math.max(0, Number(e.target.value) || 0), precio_venta_original: Math.max(0, Number(e.target.value) || 0), precio_manual: true })}
+                              type="text" inputMode="numeric" value={numInput(item.precio_venta)} placeholder="0"
+                              onChange={(e) => { const v = parseNumInput(e.target.value); updateItemCampo(idx, { precio_venta: v, precio_venta_original: v, precio_manual: true }); }}
                               className="h-8 w-28 rounded-md border border-slate-200 bg-white px-2 text-right text-sm tabular-nums"
                             />
                           </td>

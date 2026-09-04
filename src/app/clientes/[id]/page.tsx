@@ -1012,7 +1012,7 @@ export default function ClienteDetailPage() {
                   Reactivar
                 </button>
               )}
-              {esAdmin && (
+              {(
                 <button
                   type="button"
                   onClick={() => void abrirModalEliminar()}
@@ -1310,7 +1310,7 @@ export default function ClienteDetailPage() {
                   </div>
                 </div>
               )}
-              {eliminarPreview?.puede_eliminar && eliminarPreview.facturas_pendientes_count > 0 && (
+              {esAdmin && eliminarPreview?.puede_eliminar && eliminarPreview.facturas_pendientes_count > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-sm text-red-900 font-medium mb-2">
                     {eliminarPreview.facturas_pendientes_count === 1 && eliminarPreview.factura_ejemplo

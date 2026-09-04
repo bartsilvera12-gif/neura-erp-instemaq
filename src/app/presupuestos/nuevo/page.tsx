@@ -55,6 +55,15 @@ type Item = {
 function fmtGs(n: number) {
   return "Gs. " + (Number(n) || 0).toLocaleString("es-PY", { maximumFractionDigits: 0 });
 }
+/** Muestra vacío cuando es 0 y sin ceros a la izquierda (evita el "0" pegado en inputs numéricos). */
+function numInput(n: number): string {
+  return !n || Number.isNaN(n) ? "" : String(n);
+}
+/** Parsea un input numérico entero quitando ceros a la izquierda; vacío/inválido → 0. */
+function parseNumInput(s: string): number {
+  const d = String(s).replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+  return d === "" ? 0 : Number(d);
+}
 function round2(n: number) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -476,10 +485,10 @@ export default function NuevoPresupuestoPage() {
                         <input value={it.producto_nombre} onChange={(e) => updItem(i, { producto_nombre: e.target.value })} className={inputClass} placeholder="Descripción" />
                       </td>
                       <td className="py-2 px-2">
-                        <input type="number" min="1" step="1" inputMode="numeric" value={it.cantidad} onChange={(e) => updItem(i, { cantidad: Math.max(0, Math.floor(Number(e.target.value)) || 0) })} className={inputClass} />
+                        <input type="text" inputMode="numeric" value={numInput(it.cantidad)} placeholder="0" onChange={(e) => updItem(i, { cantidad: parseNumInput(e.target.value) })} className={inputClass} />
                       </td>
                       <td className="py-2 px-2">
-                        <input type="number" min="0" step="1" value={it.precio_unitario} onChange={(e) => updItem(i, { precio_unitario: Number(e.target.value) })} className={inputClass} />
+                        <input type="text" inputMode="numeric" value={numInput(it.precio_unitario)} placeholder="0" onChange={(e) => updItem(i, { precio_unitario: parseNumInput(e.target.value) })} className={inputClass} />
                       </td>
                       <td className="py-2 px-2">
                         <select value={it.iva_tipo} onChange={(e) => updItem(i, { iva_tipo: e.target.value as IvaTipoPresupuesto })} className={`${inputClass} bg-white`}>
@@ -487,7 +496,7 @@ export default function NuevoPresupuestoPage() {
                         </select>
                       </td>
                       <td className="py-2 px-2">
-                        <input type="number" min="0" step="1" value={it.descuento} onChange={(e) => updItem(i, { descuento: Number(e.target.value) })} className={inputClass} />
+                        <input type="text" inputMode="numeric" value={numInput(it.descuento)} placeholder="0" onChange={(e) => updItem(i, { descuento: parseNumInput(e.target.value) })} className={inputClass} />
                       </td>
                       <td className="py-2 px-2">
                         <input

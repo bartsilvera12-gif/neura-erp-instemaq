@@ -111,6 +111,13 @@ function formatMonto(nStr: string, moneda: string): string {
   return n.toLocaleString("es-PY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** "2026-09-04T11:55:48" (formato SIFEN) → "04/09/2026 11:55" (legible, sin segundos ni la "T"). */
+function formatFechaEmision(iso: string | null | undefined): string {
+  const s = String(iso ?? "").trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(s);
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : s;
+}
+
 /**
  * Logo por defecto del KuDE. Primero el de la instancia (Instemaq); si no está,
  * se preserva el logo Neura del bundle.
@@ -425,7 +432,7 @@ export async function buildKudePdfBuffer(input: BuildKudePdfInput): Promise<Buff
   const col2X = margin + innerW * 0.48;
   const labSz = 7.5;
   let yOp = cursorTop + 10;
-  drawLabelValue(page, col1X, yOp, "Fecha de emisión: ", parsed.dFeEmiDE, fontBold, font, labSz, primary);
+  drawLabelValue(page, col1X, yOp, "Fecha de emisión: ", formatFechaEmision(parsed.dFeEmiDE), fontBold, font, labSz, primary);
   yOp += 11;
   drawLabelValue(
     page,

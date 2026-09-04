@@ -192,10 +192,6 @@ export async function DELETE(
     }
     const { auth, supabase } = ctx;
 
-    if (!isAdmin(auth)) {
-      return NextResponse.json(errorResponse("Solo usuarios administradores pueden eliminar clientes"), { status: 403 });
-    }
-
     const { id: clienteId } = await params;
     if (!clienteId) {
       return NextResponse.json(errorResponse("id es obligatorio"), { status: 400 });
@@ -204,7 +200,9 @@ export async function DELETE(
     const body = await request.json().catch(() => ({}));
     const deletionReason = typeof body.deletion_reason === "string" ? body.deletion_reason.trim() : "";
     const cancelarSuscripciones = Boolean(body.cancelar_suscripciones);
-    const anularFacturasPendientes = Boolean(body.anular_facturas_pendientes);
+    // Anular facturas pendientes es una acción financiera (cobranzas): solo admin.
+    // Los vendedores pueden eliminar el cliente, pero no anular sus facturas al hacerlo.
+    const anularFacturasPendientes = Boolean(body.anular_facturas_pendientes) && isAdmin(auth);
 
     if (!deletionReason) {
       return NextResponse.json(errorResponse("El motivo de eliminación es obligatorio"), { status: 400 });
