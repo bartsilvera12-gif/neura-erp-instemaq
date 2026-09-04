@@ -3,7 +3,13 @@
  * Devuelve HTML con estilos inline para no depender del CSS de cada endpoint.
  *
  * SOLO presentación: no toca datos de negocio.
+ *
+ * El logo se INCRUSTA como data URI (base64), importado de una constante del bundle,
+ * porque el `<img src="/brand/...">` por URL no renderizaba al abrir el HTML de
+ * impresión (salía el ícono de imagen rota) y leer de public/ por fs no es confiable
+ * en Vercel. La constante siempre está en el bundle → el logo carga siempre.
  */
+import { INSTEMAQ_LOGO_DATA_URI } from "./instemaq-logo-base64";
 
 export const EMPRESA_DOC = {
   nombre: "INSTEMAQ",
@@ -11,9 +17,14 @@ export const EMPRESA_DOC = {
   telefono: "",
   email: "",
   direccion: [] as string[],
-  /** Logo del cliente. Servido desde /public. PNG (el .jpeg no renderizaba en los documentos). */
+  /** Fallback (no debería usarse: se prefiere el data URI embebido). */
   logoUrl: "/brand/instemaq-logo.png",
 };
+
+/** Fuente del logo para el `<img>`: data URI embebido (siempre disponible). */
+function resolveLogoSrc(origin: string): string {
+  return INSTEMAQ_LOGO_DATA_URI || (origin ? `${origin}${EMPRESA_DOC.logoUrl}` : EMPRESA_DOC.logoUrl);
+}
 
 function esc(v: unknown): string {
   return String(v ?? "")
@@ -29,7 +40,7 @@ function esc(v: unknown): string {
  */
 export function membreteA4(origin = ""): string {
   const e = EMPRESA_DOC;
-  const logo = origin ? `${origin}${e.logoUrl}` : e.logoUrl;
+  const logo = resolveLogoSrc(origin);
   const actividadHtml = e.actividad.length
     ? e.actividad.map((a) => `<div style="color:#6b7280;">${esc(a)}</div>`).join("")
     : "";
@@ -56,7 +67,7 @@ export function membreteA4(origin = ""): string {
  */
 export function membreteTicket(origin = ""): string {
   const e = EMPRESA_DOC;
-  const logo = origin ? `${origin}${e.logoUrl}` : e.logoUrl;
+  const logo = resolveLogoSrc(origin);
   const telHtml = e.telefono ? `<div style="font-size:10px;">Tel: ${esc(e.telefono)}</div>` : "";
   const emailHtml = e.email ? `<div style="font-size:10px;word-break:break-all;">${esc(e.email)}</div>` : "";
   const dirHtml = e.direccion.length
