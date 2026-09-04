@@ -77,8 +77,11 @@ function postHttpsMtls(
     );
     // Falla rápido si el SET no responde (evita que el request de cancelación se
     // cuelgue y el proxy devuelva un HTML de timeout).
-    req.setTimeout(25_000, () => {
-      req.destroy(new Error("Timeout esperando respuesta del SET (eventos, 25s)."));
+    // Timeout corto: Vercel no respeta maxDuration en esta cuenta (cap ~10s), así que
+    // si el SET no responde rápido debemos fallar con JSON ANTES de que el gateway
+    // mate la función y devuelva un 502 sin cuerpo.
+    req.setTimeout(6_000, () => {
+      req.destroy(new Error("Timeout esperando respuesta del SET (eventos, 6s)."));
     });
     req.on("error", reject);
     req.write(body, "utf8");

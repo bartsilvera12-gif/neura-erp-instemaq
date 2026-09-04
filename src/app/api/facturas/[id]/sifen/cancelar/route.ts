@@ -157,6 +157,8 @@ export async function POST(
           estado: "rechazado",
           set_cod_res: setRes.dCodRes,
           set_msg_res: setRes.dMsgRes,
+          set_http_status: setRes.httpStatus,
+          set_raw: setRes.rawResponse,
           error: setRes.error,
         },
       });

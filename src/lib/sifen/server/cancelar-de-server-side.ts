@@ -20,10 +20,13 @@ export interface CancelarDeSetResult {
   dCodRes: string | null;
   dMsgRes: string | null;
   error: string | null;
+  /** Diagnóstico: HTTP status y respuesta cruda del SET (recortada). */
+  httpStatus: number | null;
+  rawResponse: string | null;
 }
 
 function fail(error: string): CancelarDeSetResult {
-  return { ok: false, aceptado: false, dCodRes: null, dMsgRes: null, error };
+  return { ok: false, aceptado: false, dCodRes: null, dMsgRes: null, error, httpStatus: null, rawResponse: null };
 }
 
 export async function cancelarDeEnSetServerSide(args: {
@@ -77,16 +80,18 @@ export async function cancelarDeEnSetServerSide(args: {
       certificadoPassword: password,
     });
 
+    const rawResponse = (res.cuerpoSoapCrudo ?? "").slice(0, 800);
+    const errBase = res.dMsgRes?.trim()
+      ? res.dMsgRes.trim()
+      : `El SET no aceptó la cancelación (código ${res.dCodRes ?? "sin código"}, HTTP ${res.httpStatus}).`;
     return {
       ok: true,
       aceptado: res.aceptado,
       dCodRes: res.dCodRes,
       dMsgRes: res.dMsgRes,
-      error: res.aceptado
-        ? null
-        : res.dMsgRes?.trim()
-          ? res.dMsgRes.trim()
-          : `El SET no aceptó la cancelación (código ${res.dCodRes ?? "sin código"}).`,
+      httpStatus: res.httpStatus,
+      rawResponse: rawResponse || null,
+      error: res.aceptado ? null : errBase,
     };
   } catch (e) {
     return fail(e instanceof Error ? e.message : "Error al enviar la cancelación al SET.");
