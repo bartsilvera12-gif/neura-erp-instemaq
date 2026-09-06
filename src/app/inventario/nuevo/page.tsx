@@ -38,7 +38,7 @@ export default function NuevoProductoPage() {
     precio_venta: "",
     stock_actual: "",
     stock_minimo: "",
-    unidad_medida: "",
+    unidad_medida: "UNIDAD",
     metodo_valuacion: "CPP" as MetodoValuacion,
     tipo_producto: "reventa" as "reventa" | "repuesto" | "servicio",
   });
@@ -57,7 +57,9 @@ export default function NuevoProductoPage() {
 
   // Selector inicial de tipo gastronómico — aplica presets a los flags
   type TipoGastro = "reventa" | "menu" | "materia" | null;
-  const [tipoGastro, setTipoGastro] = useState<TipoGastro>(null);
+  // Ferretería: todos los productos son de reventa. Se omite el selector de tipo
+  // (reventa / menú / materia prima) y se entra directo al formulario de reventa.
+  const [tipoGastro, setTipoGastro] = useState<TipoGastro>("reventa");
   function aplicarTipoGastro(tipo: Exclude<TipoGastro, null>) {
     setTipoGastro(tipo);
     if (tipo === "reventa") {
@@ -446,7 +448,6 @@ export default function NuevoProductoPage() {
     );
   }
 
-  const summary = TIPO_SUMMARY[tipoGastro];
   const showStock = tipoGastro === "reventa";
   const showPrecioVenta = tipoGastro !== "materia";
 
@@ -455,23 +456,6 @@ export default function NuevoProductoPage() {
 
       <div>
         <h1 className="text-3xl font-bold text-gray-800">Nuevo producto</h1>
-      </div>
-
-      <div className="bg-white rounded-xl border border-amber-200 shadow-sm p-5 max-w-5xl">
-        <div className="flex items-start gap-4">
-          <div className="text-3xl">{summary.icono}</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-semibold text-slate-900">{summary.titulo}</div>
-            <div className="text-sm text-slate-600 mt-0.5">{summary.descripcion}</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setTipoGastro(null)}
-            className="text-xs text-amber-700 hover:text-amber-900 underline shrink-0"
-          >
-            Cambiar tipo
-          </button>
-        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow p-6 max-w-5xl">

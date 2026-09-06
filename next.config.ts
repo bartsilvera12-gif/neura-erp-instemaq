@@ -21,10 +21,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // ESLint durante el build también consume RAM; se corre aparte, no en el deploy.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 
   // Caching agresivo de assets fingerprinted + HSTS.
   async headers() {
