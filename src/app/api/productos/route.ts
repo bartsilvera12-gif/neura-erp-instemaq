@@ -3,6 +3,7 @@ import { getTenantSupabaseFromAuth } from "@/lib/supabase/tenant-api";
 import { successResponse, errorResponse } from "@/lib/api/response";
 import { API_ERRORS } from "@/lib/api/errors";
 import { normalizeUpperText, normalizeUpperCodigoBarras } from "@/lib/text/normalize";
+import { signProductoImagen } from "@/lib/inventario/imagen-storage";
 import type { AppSupabaseClient } from "@/lib/supabase/schema";
 
 /**
@@ -59,6 +60,16 @@ export async function GET(request: NextRequest) {
       .order("nombre");
     if (error) throw new Error(error.message);
     const rows = ((data ?? []) as unknown as Record<string, unknown>[]).map(rowToApi);
+    // La imagen vive en un bucket privado: la columna imagen_url queda null y hay
+    // que firmar el path para poder mostrarla en la lista. Solo se firma a los que
+    // tienen imagen (la mayoría no), así que el costo es proporcional a esos pocos.
+    await Promise.all(
+      rows.map(async (r) => {
+        if (!r.imagen_url && r.imagen_path) {
+          r.imagen_url = await signProductoImagen(ctx.supabase, String(r.imagen_path));
+        }
+      })
+    );
     return NextResponse.json(successResponse({ productos: rows }));
   } catch (err) {
     console.error("[/api/productos GET]", err instanceof Error ? err.message : err);
