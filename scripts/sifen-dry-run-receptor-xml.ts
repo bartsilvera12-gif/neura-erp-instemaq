@@ -108,7 +108,43 @@ runCase(
 );
 
 runCase(
-  "receptor paraguayo solo CI (sin dRucRec; iTiOpe B2B)",
+  "receptor RUC con dirección SIN número de casa (regresión FAC-000007: dNumCasRec=0)",
+  {
+    cliente_id: "00000000-0000-4000-8000-000000000011",
+    nombre: "ARTURO CHAMORRO",
+    ruc: "604656-8",
+    documento: null,
+    direccion: "BENJAMIN ACEVAL ESQ BOQUERON",
+    num_casa: null,
+    telefono: null,
+    email: null,
+    receptor_extranjero: false,
+  },
+  {
+    mustHave: ["<dRucRec>", "<dDirRec>BENJAMIN ACEVAL ESQ BOQUERON</dDirRec>", "<dNumCasRec>0</dNumCasRec>"],
+  }
+);
+
+runCase(
+  "receptor CI con dirección y número de casa explícito (dNumCasRec=250)",
+  {
+    cliente_id: "00000000-0000-4000-8000-000000000012",
+    nombre: "Persona con casa",
+    ruc: null,
+    documento: "1234567",
+    direccion: "AVDA MCAL LOPEZ",
+    num_casa: 250,
+    telefono: null,
+    email: null,
+    receptor_extranjero: false,
+  },
+  {
+    mustHave: ["<dDirRec>AVDA MCAL LOPEZ</dDirRec>", "<dNumCasRec>250</dNumCasRec>"],
+  }
+);
+
+runCase(
+  "receptor paraguayo solo CI (sin dRucRec; iNatRec 2 exige iTiOpe B2C=2)",
   {
     cliente_id: "00000000-0000-4000-8000-000000000002",
     nombre: "Persona Natural",
@@ -120,7 +156,7 @@ runCase(
     receptor_extranjero: false,
   },
   {
-    mustHave: ["<dNumIDRec>1234567</dNumIDRec>", "<cPaisRec>PRY</cPaisRec>", "<iNatRec>2</iNatRec>", "<iTiOpe>1</iTiOpe>"],
+    mustHave: ["<dNumIDRec>1234567</dNumIDRec>", "<cPaisRec>PRY</cPaisRec>", "<iNatRec>2</iNatRec>", "<iTiOpe>2</iTiOpe>"],
     mustNot: ["<dRucRec>", "<iTiOpe>4</iTiOpe>"],
   }
 );

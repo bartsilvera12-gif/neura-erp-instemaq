@@ -266,6 +266,15 @@ function validateReceptor(
     }
   }
 
+  // dNumCasRec: SIFEN lo exige siempre que se informe dDirRec. Muchos clientes no tienen
+  // número de casa → se envía 0 (entero ≥ 0) por defecto.
+  const numCasaRaw = cliente.sifen_num_casa_de;
+  const num_casa = ((): number => {
+    if (numCasaRaw == null || numCasaRaw === "") return 0;
+    const n = typeof numCasaRaw === "number" ? numCasaRaw : parseInt(String(numCasaRaw), 10);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+  })();
+
   if (extranjero) {
     const codigoPais = resolveCodigoPaisIso3Receptor({
       sifenCodigoPais: cliente.sifen_codigo_pais,
@@ -309,6 +318,7 @@ function validateReceptor(
       documento,
       ruc,
       direccion,
+      num_casa,
       telefono: trimStr(cliente.telefono) || null,
       email: trimStr(cliente.email) || null,
       receptor_extranjero: true,
@@ -360,6 +370,7 @@ function validateReceptor(
     documento,
     ruc,
     direccion,
+    num_casa,
     telefono: trimStr(cliente.telefono) || null,
     email: trimStr(cliente.email) || null,
     receptor_extranjero: false,

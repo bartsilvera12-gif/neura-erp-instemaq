@@ -234,6 +234,11 @@ export interface SifenPayloadReceptor {
   documento: string | null;
   ruc: string | null;
   direccion: string | null;
+  /**
+   * dNumCasRec (entero ≥ 0) para el modo legacy RUC/CI/extranjero.
+   * SIFEN exige dNumCasRec siempre que se informe dDirRec; se envía 0 cuando el cliente no tiene número de casa.
+   */
+  num_casa?: number | null;
   telefono: string | null;
   email: string | null;
   /**
