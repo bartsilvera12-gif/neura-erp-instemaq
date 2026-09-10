@@ -75,6 +75,8 @@ export type KudeParsedFromXml = {
   };
   operacion: {
     condicionVenta: string;
+    /** Código fiscal SIFEN `iCondOpe`: "1" = Contado, "2" = Crédito. "" si el XML no lo trae. */
+    condicionCodigo: string;
     tipoOperacion: string;
   };
   totales: {
@@ -331,10 +333,12 @@ export function parseKudeFromSignedRdeXml(xmlUtf8: string): KudeParsedFromXml {
 
   const gDtipDE = firstNs(de, "gDtipDE");
   let condicionVenta = "";
+  let condicionCodigo = "";
   if (gDtipDE) {
     const gCamCond = firstNs(gDtipDE, "gCamCond");
     if (gCamCond) {
       condicionVenta = textOf(firstNs(gCamCond, "dDCondOpe"));
+      condicionCodigo = textOf(firstNs(gCamCond, "iCondOpe"));
     }
   }
 
@@ -388,6 +392,7 @@ export function parseKudeFromSignedRdeXml(xmlUtf8: string): KudeParsedFromXml {
     receptor,
     operacion: {
       condicionVenta: condicionVenta || "—",
+      condicionCodigo,
       tipoOperacion: tipoOperacion || "—",
     },
     totales,

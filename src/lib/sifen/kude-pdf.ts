@@ -737,5 +737,68 @@ export async function buildKudePdfBuffer(input: BuildKudePdfInput): Promise<Buff
     color: GRAY,
   });
 
+  /**
+   * Conformidad del cliente — SOLO ventas a crédito.
+   * Espacio manual para Nombre / Cédula / Firma al final del documento.
+   *
+   * Se detecta con el campo fiscal canónico `iCondOpe` ("2" = Crédito) del XML
+   * firmado; fallback a la descripción `dDCondOpe` por robustez. NO altera XML,
+   * totales, timbrado, numeración ni datos fiscales: es solo apariencia del KuDE.
+   */
+  const esVentaCredito =
+    parsed.operacion.condicionCodigo === "2" ||
+    /cr[eé]dito/i.test(parsed.operacion.condicionVenta);
+
+  if (esVentaCredito) {
+    cursorTop += footBoxH + 14;
+
+    const firmaBoxH = 128;
+    // Si no cabe entera en la página actual, se pasa a una nueva (nunca se parte).
+    if (A4_H - cursorTop < firmaBoxH + margin) {
+      page = pdfDoc.addPage([A4_W, A4_H]);
+      cursorTop = margin;
+    }
+
+    sectionTitle("CONFORMIDAD DEL CLIENTE (VENTA A CRÉDITO)");
+
+    drawRectFromTop(page, margin, cursorTop, innerW, firmaBoxH, {
+      fill: rgb(1, 1, 1),
+      border: primary,
+    });
+
+    const fLabelX = margin + 16;
+    const fLineRight = margin + innerW - 16;
+    const fSz = 9;
+    const labels = ["Nombre:", "Cédula:", "Firma:"];
+    const maxLabelW = Math.max(...labels.map((l) => fontBold.widthOfTextAtSize(l, fSz)));
+    const fLineStartX = fLabelX + maxLabelW + 10;
+
+    const drawFirmaLinea = (label: string, fromTop: number) => {
+      const y = baselineFromTop(page, fromTop);
+      page.drawText(label, { x: fLabelX, y, size: fSz, font: fontBold, color: BLACK });
+      page.drawLine({
+        start: { x: fLineStartX, y: y - 1.5 },
+        end: { x: fLineRight, y: y - 1.5 },
+        thickness: 0.6,
+        color: GRAY,
+      });
+    };
+
+    page.drawText("Recibí conforme la mercadería / servicio detallado (completar a mano).", {
+      x: fLabelX,
+      y: baselineFromTop(page, cursorTop + 14),
+      size: 7,
+      font,
+      color: GRAY,
+    });
+
+    let fy = cursorTop + 38;
+    drawFirmaLinea("Nombre:", fy);
+    fy += 28;
+    drawFirmaLinea("Cédula:", fy);
+    fy += 46; // espacio extra por encima de la línea para la firma manuscrita
+    drawFirmaLinea("Firma:", fy);
+  }
+
   return Buffer.from(await pdfDoc.save());
 }
