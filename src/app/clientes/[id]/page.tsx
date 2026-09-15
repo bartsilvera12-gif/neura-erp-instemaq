@@ -628,7 +628,10 @@ export default function ClienteDetailPage() {
         tipo_cliente:        form.tipo_cliente,
         empresa:             form.tipo_cliente === "empresa" ? form.empresa.trim().toUpperCase() : undefined,
         nombre_contacto:     form.nombre_contacto.trim().toUpperCase(),
-        ruc:                 form.ruc.trim()                 || undefined,
+        // Persona: nunca arrastra RUC (la UI de persona solo pide CI). Enviar "" limpia un RUC
+        // "pegado" que, si no, enruta el DE por la rama contribuyente (iNatRec=1) y SET rechaza.
+        // Empresa: comportamiento idéntico al anterior (no se toca lo que ya funciona).
+        ruc:                 form.tipo_cliente === "empresa" ? (form.ruc.trim() || undefined) : "",
         documento:           form.documento.trim()           || undefined,
         telefono:            form.telefono.trim()            || undefined,
         telefono_secundario: form.telefono_secundario.trim() || undefined,
