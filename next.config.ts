@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
   // si Coolify/Traefik intentan re-comprimir).
   compress: true,
 
-  // NO usamos output: "standalone": Coolify+Nixpacks corre `next start` con .next/
-  // regular, no usa .next/standalone/.
+  // Salida standalone para el Dockerfile (node server.js): la imagen solo lleva el
+  // subconjunto de node_modules que Next rastreó → mucha menos RAM que `next start`.
+  output: "standalone",
 
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
